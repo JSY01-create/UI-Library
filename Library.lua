@@ -544,7 +544,7 @@ function Library:CreateWindow(config)
 		Size = UDim2.new(0, 28, 0, 28),
 		Position = UDim2.new(1, -72, 0.5, -14),
 		BackgroundColor3 = Theme.Elevated,
-		Text = "—",
+		Text = "-",
 		Font = Theme.FontBold,
 		TextSize = 16,
 		TextColor3 = Theme.SubText,
@@ -566,7 +566,7 @@ function Library:CreateWindow(config)
 			MinimizeBtn.Text = "+"
 			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 46) }, 0.18)
 		else
-			MinimizeBtn.Text = "—"
+			MinimizeBtn.Text = "-"
 			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, expandedHeight) }, 0.18)
 			task.wait(0.18)
 			-- only reveal these again once the window has actually
