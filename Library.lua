@@ -563,7 +563,7 @@ function Library:CreateWindow(config)
 		if minimized then
 			Sidebar.Visible = false
 			ContentArea.Visible = false
-			MinimizeBtn.Text = "+"—
+			MinimizeBtn.Text = "+"
 			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 46) }, 0.18)
 		else
 			MinimizeBtn.Text = "-"
