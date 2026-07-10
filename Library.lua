@@ -268,17 +268,6 @@ Library.ThemePresets = {
 		Success = Color3.fromRGB(110, 200, 140),
 		Danger = Color3.fromRGB(250, 110, 110),
 	},
-	Grape = {
-    Background = Color3.fromRGB(26, 20, 34),
-    Sidebar = Color3.fromRGB(21, 16, 28),
-    Elevated = Color3.fromRGB(38, 30, 48),
-    ElevatedHover = Color3.fromRGB(46, 37, 58),
-    Stroke = Color3.fromRGB(56, 45, 70),
-    Accent = Color3.fromRGB(170, 110, 255),
-    AccentHover = Color3.fromRGB(190, 140, 255),
-    Text = Color3.fromRGB(240, 235, 245),
-    SubText = Color3.fromRGB(160, 150, 170),
-  },
 }
 
 -- friendly aliases, so people don't have to remember the "canonical" name
@@ -454,15 +443,49 @@ function Library:CreateWindow(config)
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 
+	-- Figure out how much screen we've actually got. On a phone that's a
+	-- lot smaller than a desktop window, so instead of a fixed 640x420
+	-- (which would spill off the edges of a phone screen) we clamp the
+	-- window to whatever fits, with sane min/max bounds either way.
+	local camera = workspace.CurrentCamera
+	local viewport = (camera and camera.ViewportSize) or Vector2.new(1280, 720)
+	local windowWidth = math.clamp(viewport.X - 24, 300, 640)
+	local windowHeight = math.clamp(viewport.Y - 120, 340, 420)
+
 	-- The main box itself.
 	local MainFrame = new("Frame", {
-		Size = UDim2.new(0, 640, 0, 420),          -- width, height in pixels
-		Position = UDim2.new(0.5, -320, 0.5, -210), -- centered on screen
+		Size = UDim2.new(0, windowWidth, 0, windowHeight),
+		Position = UDim2.new(0.5, -windowWidth / 2, 0.5, -windowHeight / 2), -- centered on screen
 		BackgroundColor3 = Theme.Background,
 		BorderSizePixel = 0,
 		ClipsDescendants = true, -- hides anything that overflows the box's edges
 		Parent = ScreenGui,
 	}, { corner(UDim.new(0, 10)), stroke(Theme.Stroke) })
+
+	-- Tracks whether the window is currently minimized (see the Minimize
+	-- button below), and remembers the "should be this tall when open"
+	-- height so restoring it always lands back at the right size, even
+	-- after a phone rotation resizes the window in between.
+	local minimized = false
+	local expandedHeight = windowHeight
+
+	-- forward-declared so the minimize button below (created before these
+	-- exist further down) can still reference the real instances once
+	-- they're assigned, instead of accidentally creating new globals
+	local Sidebar, ContentArea
+
+	-- Re-run the sizing above any time the screen changes size, e.g. a
+	-- phone being rotated between portrait and landscape.
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			local vp = camera.ViewportSize
+			windowWidth = math.clamp(vp.X - 24, 300, 640)
+			expandedHeight = math.clamp(vp.Y - 120, 340, 420)
+			local targetHeight = minimized and 46 or expandedHeight
+			MainFrame.Size = UDim2.new(0, windowWidth, 0, targetHeight)
+			MainFrame.Position = UDim2.new(0.5, -windowWidth / 2, 0.5, -targetHeight / 2)
+		end)
+	end
 
 	--------------------------------------------------------------
 	-- Title bar (top strip with the window name + close button)
@@ -513,6 +536,46 @@ function Library:CreateWindow(config)
 		})
 	end
 
+	-- Minimize ("—") button — collapses the window down to just the
+	-- title bar, sits just left of the close button. Works the same way
+	-- for touch as it does for a mouse: TextButton's MouseButton1Click
+	-- fires for taps too, no extra input handling needed.
+	local MinimizeBtn = new("TextButton", {
+		Size = UDim2.new(0, 28, 0, 28),
+		Position = UDim2.new(1, -72, 0.5, -14),
+		BackgroundColor3 = Theme.Elevated,
+		Text = "—",
+		Font = Theme.FontBold,
+		TextSize = 16,
+		TextColor3 = Theme.SubText,
+		AutoButtonColor = false,
+		Parent = TitleBar,
+	}, { corner(UDim.new(0, 6)) })
+
+	MinimizeBtn.MouseEnter:Connect(function()
+		tween(MinimizeBtn, { BackgroundColor3 = Theme.ElevatedHover, TextColor3 = Theme.Text })
+	end)
+	MinimizeBtn.MouseLeave:Connect(function()
+		tween(MinimizeBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText })
+	end)
+	MinimizeBtn.MouseButton1Click:Connect(function()
+		minimized = not minimized
+		if minimized then
+			Sidebar.Visible = false
+			ContentArea.Visible = false
+			MinimizeBtn.Text = "+"
+			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 46) }, 0.18)
+		else
+			MinimizeBtn.Text = "—"
+			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, expandedHeight) }, 0.18)
+			task.wait(0.18)
+			-- only reveal these again once the window has actually
+			-- finished growing back, so nothing pokes out mid-tween
+			Sidebar.Visible = true
+			ContentArea.Visible = true
+		end
+	end)
+
 	-- Close ("X") button, top right of the title bar.
 	local CloseBtn = new("TextButton", {
 		Size = UDim2.new(0, 28, 0, 28),
@@ -534,7 +597,7 @@ function Library:CreateWindow(config)
 	end)
 	CloseBtn.MouseButton1Click:Connect(function()
 		-- shrink the window down to nothing, then delete it
-		tween(MainFrame, { Size = UDim2.new(0, 640, 0, 0) }, 0.2)
+		tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 0) }, 0.2)
 		task.wait(0.2)
 		ScreenGui:Destroy()
 	end)
@@ -545,7 +608,7 @@ function Library:CreateWindow(config)
 	--------------------------------------------------------------
 	-- Sidebar (the list of tabs on the left)
 	--------------------------------------------------------------
-	local Sidebar = new("Frame", {
+	Sidebar = new("Frame", {
 		Size = UDim2.new(0, 150, 1, -46),
 		Position = UDim2.new(0, 0, 0, 46),
 		BackgroundColor3 = Theme.Sidebar,
@@ -595,12 +658,27 @@ function Library:CreateWindow(config)
 	--------------------------------------------------------------
 	-- Content area (where the currently-selected tab's page shows)
 	--------------------------------------------------------------
-	local ContentArea = new("Frame", {
+	ContentArea = new("Frame", {
 		Size = UDim2.new(1, -150, 1, -46),
 		Position = UDim2.new(0, 150, 0, 46),
 		BackgroundTransparency = 1,
 		Parent = MainFrame,
 	}, { padding(Theme.Padding) })
+
+	-- A deliberate hairline where the sidebar meets the content area.
+	-- Without this, that seam is just two flat colors touching directly,
+	-- and at small sizes / lower rendering quality (e.g. on phones) the
+	-- boundary can look like it has a stray shadow or notch along it —
+	-- an explicit divider line reads as intentional instead.
+	new("Frame", {
+		Size = UDim2.new(0, 1, 1, -46),
+		Position = UDim2.new(0, 150, 0, 46),
+		BackgroundColor3 = Theme.Stroke,
+		BackgroundTransparency = 0.3,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+		Parent = MainFrame,
+	})
 
 	-- `Window` is what gets returned to you. Every Add___ function is
 	-- called like Window:AddButton(...), and internally it's really
@@ -1145,7 +1223,7 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 	local selected = default or options[1]
 	local open = false
 
-	local card = baseCard(tab, 44)
+	local card = baseCard(tab, 38)
 	card.ClipsDescendants = true -- hides the option list until the card is resized taller
 	card.ZIndex = 2
 
@@ -1164,7 +1242,7 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 	-- shows the currently selected option, click it to open/close the list
 	local Selected = new("TextButton", {
 		Size = UDim2.new(0.5, -14, 0, 30),
-		Position = UDim2.new(0.5, 0, 0, 7),
+		Position = UDim2.new(0.5, 0, 0, 4),
 		BackgroundColor3 = Theme.Background,
 		Text = (selected and tostring(selected) or "None") .. "  ▾",
 		Font = Theme.Font,
@@ -1176,7 +1254,7 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 
 	local OptionsList = new("Frame", {
 		Size = UDim2.new(1, -28, 0, #options * 30),
-		Position = UDim2.new(0, 14, 0, 48),
+		Position = UDim2.new(0, 14, 0, 42),
 		BackgroundColor3 = Theme.Background,
 		Visible = false,
 		Parent = card,
