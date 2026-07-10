@@ -567,7 +567,7 @@ function Library:CreateWindow(config)
 			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 46) }, 0.18)
 		else
 			MinimizeBtn.Text = "-"
-			tween(M—inFrame, { Size = UDim2.new(0, windowWidth, 0, expandedHeight) }, 0.18)
+			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, expandedHeight) }, 0.18)
 			task.wait(0.18)
 			-- only reveal these again once the window has actually
 			-- finished growing back, so nothing pokes out mid-tween
