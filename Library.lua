@@ -1,47 +1,131 @@
 --[[
-	UI Library
-	A tabbed window UI kit with a sidebar, themeable colors, tween-based
-	animations, and a full component set (buttons, toggles, sliders,
-	dropdowns, checkboxes, textboxes, sections, labels, notifications).
+	=====================================================================
+	 UI LIBRARY  —  a beginner-friendly Roblox UI kit
+	=====================================================================
+
+	HOW TO USE THIS (quick start):
+
+		1. Load the library:
+			local Library = loadstring(game:HttpGet("YOUR_RAW_GITHUB_URL"))()
+
+		2. Create a window (this is the whole popup box you see):
+			local Window = Library:CreateWindow({
+				Title = "My Library",
+				Subtitle = "v1.0"
+			})
+
+		3. Create a tab (a page inside the window, shown in the sidebar):
+			local MainTab = Window:CreateTab("Main", "🏠")
+
+		4. Add stuff to the tab:
+			Window:AddButton(MainTab, "Click me", function()
+				print("The button was clicked!")
+			end)
+
+	That's really it. Every "Add___" function below always takes the tab
+	you want to put it on as the FIRST argument, so it knows where to go.
+
+	-----------------------------------------------------------------
+	WHAT IS A "flag"?
+
+	Some components (Toggle, Slider, Dropdown, Checkbox, Textbox,
+	ColorPicker, Keybind) accept an optional last argument called
+	`flag`. It's just a name you pick, like "FlyEnabled" or "WalkSpeed".
+
+	If you give something a flag, the library remembers it, and you can
+	later call Window:SaveConfig() / Window:LoadConfig() to save every
+	flagged value to a file (or DataStore) and load it back later —
+	handy for settings that should persist between sessions.
+
+	You don't have to use flags. Everything works fine without them.
+	-----------------------------------------------------------------
+
+	This file is organised top-to-bottom like this:
+		1. Services & setup
+		2. Theme (all the colors/fonts/sizes live in ONE table)
+		3. Small helper functions used everywhere else
+		4. CreateWindow  (the popup box itself)
+		5. CreateTab     (pages inside the window)
+		6. Every component: Label, Section, Divider, Button, Toggle,
+		   Checkbox, Slider, Textbox, Dropdown, ColorPicker, Keybind
+		7. Notify (pop-up toast messages)
+		8. Config saving/loading (JSON)
+
+	Feel free to scroll to the THEME section first if you just want to
+	change colors — you don't need to touch anything else for that.
 ]]
 
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
+--=====================================================================
+-- 1. SERVICES & SETUP
+-- "Services" are Roblox's built-in tools. We grab the ones we need
+-- once at the top so we don't have to ask for them again later.
+--=====================================================================
+local TweenService = game:GetService("TweenService")       -- makes things animate smoothly
+local Players = game:GetService("Players")                 -- lets us find the local player
+local HttpService = game:GetService("HttpService")         -- converts data to/from JSON text
+local UserInputService = game:GetService("UserInputService") -- detects mouse/keyboard input
 
 local player = Players.LocalPlayer
 
+-- If you run this script twice (e.g. from the Studio command bar while
+-- testing), this deletes the old UI first so you don't end up with two
+-- windows stacked on top of each other.
+local existingGui = player:WaitForChild("PlayerGui"):FindFirstChild("UILibrary")
+if existingGui then
+	existingGui:Destroy()
+end
+
+-- This is the "Library" table. Every function below is added onto it
+-- with the `function Library:Something()` syntax, and at the very
+-- bottom of the file we `return Library` so whoever loads this file
+-- gets access to all of it.
 local Library = {}
 Library.__index = Library
 
---========================================================
--- THEME
---========================================================
+-- This table stores every component that was given a `flag`, so config
+-- saving/loading can find them later. You don't need to touch this.
+Library.Flags = {}
+
+--=====================================================================
+-- 2. THEME
+-- Change any of these values to re-color the whole UI. Everything in
+-- the library pulls its colors/fonts/sizes from here, so you only
+-- ever need to edit this ONE table.
+--=====================================================================
 local Theme = {
-	Background   = Color3.fromRGB(24, 24, 27),
-	Sidebar      = Color3.fromRGB(19, 19, 21),
-	Elevated     = Color3.fromRGB(32, 32, 36),
-	ElevatedHover= Color3.fromRGB(40, 40, 45),
-	Stroke       = Color3.fromRGB(46, 46, 51),
-	Accent       = Color3.fromRGB(114, 137, 255),
-	AccentHover  = Color3.fromRGB(132, 152, 255),
-	Text         = Color3.fromRGB(235, 235, 240),
-	SubText      = Color3.fromRGB(150, 150, 158),
-	Success      = Color3.fromRGB(90, 200, 130),
-	Danger       = Color3.fromRGB(230, 90, 90),
+	Background    = Color3.fromRGB(24, 24, 27),   -- main window background
+	Sidebar       = Color3.fromRGB(19, 19, 21),    -- tab list + title bar background
+	Elevated      = Color3.fromRGB(32, 32, 36),    -- default color of buttons/cards
+	ElevatedHover = Color3.fromRGB(40, 40, 45),    -- color of buttons/cards on hover
+	Stroke        = Color3.fromRGB(46, 46, 51),    -- thin border color around cards
+	Accent        = Color3.fromRGB(114, 137, 255), -- your "brand" color (toggles, sliders, active tab)
+	AccentHover   = Color3.fromRGB(132, 152, 255),
+	Text          = Color3.fromRGB(235, 235, 240), -- main text color
+	SubText       = Color3.fromRGB(150, 150, 158), -- dimmer text color (descriptions, labels)
+	Success       = Color3.fromRGB(90, 200, 130),
+	Danger        = Color3.fromRGB(230, 90, 90),   -- used for the close button hover
 
-	Font         = Enum.Font.GothamMedium,
-	FontBold     = Enum.Font.GothamBold,
+	Font          = Enum.Font.GothamMedium,        -- normal text font
+	FontBold      = Enum.Font.GothamBold,          -- bold text font (titles, active tab)
 
-	CornerRadius = UDim.new(0, 8),
-	Padding      = 12,
-	ItemGap      = 8,
+	CornerRadius  = UDim.new(0, 8),  -- how rounded corners are, in pixels
+	Padding       = 12,              -- space around the inside edge of the content area
+	ItemGap       = 8,               -- vertical space between components in a tab
 }
 
-Library.Theme = Theme
+Library.Theme = Theme -- exposed in case you want to read/tweak it from outside this file too
 
---========================================================
--- UTILITIES
---========================================================
+--=====================================================================
+-- 3. HELPER FUNCTIONS
+-- These are small building blocks used by every component below, so
+-- we don't have to repeat the same code over and over. You shouldn't
+-- need to edit these — but reading them will help you understand how
+-- everything else works.
+--=====================================================================
+
+-- `new` creates a Roblox Instance (like a Frame, TextButton, etc),
+-- sets its properties from a table, and parents any children to it.
+-- Example: new("Frame", { Size = UDim2.new(1,0,1,0) }, { someChild })
 local function new(class, props, children)
 	local inst = Instance.new(class)
 	for prop, value in pairs(props or {}) do
@@ -53,10 +137,12 @@ local function new(class, props, children)
 	return inst
 end
 
+-- Adds rounded corners to whatever it's parented to.
 local function corner(radius)
 	return new("UICorner", { CornerRadius = radius or Theme.CornerRadius })
 end
 
+-- Adds a thin outline border to whatever it's parented to.
 local function stroke(color, thickness)
 	return new("UIStroke", {
 		Color = color or Theme.Stroke,
@@ -65,6 +151,7 @@ local function stroke(color, thickness)
 	})
 end
 
+-- Adds inner spacing (like CSS "padding") to whatever it's parented to.
 local function padding(all, top, right, bottom, left)
 	return new("UIPadding", {
 		PaddingTop = UDim.new(0, top or all or 0),
@@ -74,6 +161,8 @@ local function padding(all, top, right, bottom, left)
 	})
 end
 
+-- Automatically stacks children in a row/column with even spacing,
+-- so we never have to manually calculate pixel positions.
 local function listLayout(direction, gap, alignment)
 	return new("UIListLayout", {
 		FillDirection = direction or Enum.FillDirection.Vertical,
@@ -83,6 +172,9 @@ local function listLayout(direction, gap, alignment)
 	})
 end
 
+-- Smoothly animates a property change (e.g. color, size, position)
+-- instead of it snapping instantly. Used for basically every hover
+-- effect / toggle switch / slider movement in this library.
 local function tween(inst, props, duration, style, direction)
 	local t = TweenService:Create(
 		inst,
@@ -93,13 +185,18 @@ local function tween(inst, props, duration, style, direction)
 	return t
 end
 
+-- Makes `target` movable by clicking and dragging `handle`.
+-- Used so you can drag the window around by its title bar.
 local function makeDraggable(handle, target)
 	local dragging, dragStart, startPos
+
 	handle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
 			startPos = target.Position
+
+			-- stop dragging once the mouse/finger is released
 			input.Changed:Connect(function()
 				if input.UserInputState == Enum.UserInputState.End then
 					dragging = false
@@ -107,6 +204,7 @@ local function makeDraggable(handle, target)
 			end)
 		end
 	end)
+
 	handle.InputChanged:Connect(function(input)
 		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local delta = input.Position - dragStart
@@ -118,31 +216,40 @@ local function makeDraggable(handle, target)
 	end)
 end
 
---========================================================
--- WINDOW
---========================================================
+--=====================================================================
+-- 4. CREATE WINDOW
+-- This builds the actual popup box: the title bar, the sidebar where
+-- tabs are listed, and the empty content area where each tab's
+-- components will go.
+--=====================================================================
+
+-- config = { Title = "text shown at the top", Subtitle = "optional smaller text under it" }
 function Library:CreateWindow(config)
 	config = config or {}
 	local title = config.Title or "My Library"
 	local subtitle = config.Subtitle
 
+	-- ScreenGui is the container every other UI element lives inside.
 	local ScreenGui = new("ScreenGui", {
 		Name = "UILibrary",
-		ResetOnSpawn = false,
+		ResetOnSpawn = false, -- keeps the UI alive when the player respawns
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 
+	-- The main box itself.
 	local MainFrame = new("Frame", {
-		Size = UDim2.new(0, 640, 0, 420),
-		Position = UDim2.new(0.5, -320, 0.5, -210),
+		Size = UDim2.new(0, 640, 0, 420),          -- width, height in pixels
+		Position = UDim2.new(0.5, -320, 0.5, -210), -- centered on screen
 		BackgroundColor3 = Theme.Background,
 		BorderSizePixel = 0,
-		ClipsDescendants = true,
+		ClipsDescendants = true, -- hides anything that overflows the box's edges
 		Parent = ScreenGui,
 	}, { corner(UDim.new(0, 10)), stroke(Theme.Stroke) })
 
-	-- Title bar
+	--------------------------------------------------------------
+	-- Title bar (top strip with the window name + close button)
+	--------------------------------------------------------------
 	local TitleBar = new("Frame", {
 		Size = UDim2.new(1, 0, 0, 46),
 		BackgroundColor3 = Theme.Sidebar,
@@ -150,7 +257,10 @@ function Library:CreateWindow(config)
 		Parent = MainFrame,
 	}, { corner(UDim.new(0, 10)) })
 
-	-- mask the bottom corners of the title bar so it reads as a flat top strip
+	-- The corner() above rounds ALL four corners of the title bar, but
+	-- we only want the top two rounded (it should sit flush with the
+	-- content below). This little frame just covers up the bottom
+	-- rounding so it looks like a flat-bottomed strip.
 	new("Frame", {
 		Size = UDim2.new(1, 0, 0, 10),
 		Position = UDim2.new(0, 0, 1, -10),
@@ -186,6 +296,7 @@ function Library:CreateWindow(config)
 		})
 	end
 
+	-- Close ("X") button, top right of the title bar.
 	local CloseBtn = new("TextButton", {
 		Size = UDim2.new(0, 28, 0, 28),
 		Position = UDim2.new(1, -38, 0.5, -14),
@@ -194,7 +305,7 @@ function Library:CreateWindow(config)
 		Font = Theme.FontBold,
 		TextSize = 18,
 		TextColor3 = Theme.SubText,
-		AutoButtonColor = false,
+		AutoButtonColor = false, -- we handle hover coloring ourselves below
 		Parent = TitleBar,
 	}, { corner(UDim.new(0, 6)) })
 
@@ -205,14 +316,18 @@ function Library:CreateWindow(config)
 		tween(CloseBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText })
 	end)
 	CloseBtn.MouseButton1Click:Connect(function()
+		-- shrink the window down to nothing, then delete it
 		tween(MainFrame, { Size = UDim2.new(0, 640, 0, 0) }, 0.2)
 		task.wait(0.2)
 		ScreenGui:Destroy()
 	end)
 
+	-- Let the player drag the whole window by holding the title bar.
 	makeDraggable(TitleBar, MainFrame)
 
-	-- Sidebar (tab list)
+	--------------------------------------------------------------
+	-- Sidebar (the list of tabs on the left)
+	--------------------------------------------------------------
 	local Sidebar = new("Frame", {
 		Size = UDim2.new(0, 150, 1, -46),
 		Position = UDim2.new(0, 0, 0, 46),
@@ -221,13 +336,15 @@ function Library:CreateWindow(config)
 		Parent = MainFrame,
 	})
 
+	-- Tab buttons get added inside this ScrollingFrame so if you add
+	-- LOTS of tabs, the sidebar becomes scrollable instead of overflowing.
 	local TabList = new("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 3,
 		ScrollBarImageColor3 = Theme.Stroke,
-		CanvasSize = UDim2.new(0, 0, 0, 0),
+		CanvasSize = UDim2.new(0, 0, 0, 0),        -- start at 0, AutomaticCanvasSize grows it for us
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		Parent = Sidebar,
 	}, {
@@ -235,7 +352,9 @@ function Library:CreateWindow(config)
 		listLayout(Enum.FillDirection.Vertical, 6),
 	})
 
-	-- Content area
+	--------------------------------------------------------------
+	-- Content area (where the currently-selected tab's page shows)
+	--------------------------------------------------------------
 	local ContentArea = new("Frame", {
 		Size = UDim2.new(1, -150, 1, -46),
 		Position = UDim2.new(0, 150, 0, 46),
@@ -243,23 +362,32 @@ function Library:CreateWindow(config)
 		Parent = MainFrame,
 	}, { padding(Theme.Padding) })
 
+	-- `Window` is what gets returned to you. Every Add___ function is
+	-- called like Window:AddButton(...), and internally it's really
+	-- just calling the Library functions below with `self` = Window.
 	local Window = setmetatable({
 		ScreenGui = ScreenGui,
 		MainFrame = MainFrame,
 		TabList = TabList,
 		ContentArea = ContentArea,
-		Tabs = {},
+		Tabs = {}, -- keeps track of every tab created, so clicking one can hide the others
 	}, Library)
 
 	return Window
 end
 
---========================================================
--- TABS
---========================================================
+--=====================================================================
+-- 5. CREATE TAB
+-- Adds a new button to the sidebar, and a matching (initially hidden,
+-- unless it's the first tab) page in the content area. Returns the
+-- page — pass THIS into every AddButton/AddToggle/etc call so the
+-- library knows which tab to put the component on.
+--=====================================================================
+
+-- name = text shown in the sidebar. icon = optional emoji/text shown before it.
 function Library:CreateTab(name, icon)
 	local index = #self.Tabs + 1
-	local isFirst = index == 1
+	local isFirst = index == 1 -- the first tab created is automatically the one shown by default
 
 	local TabButton = new("TextButton", {
 		Size = UDim2.new(1, 0, 0, 34),
@@ -282,6 +410,7 @@ function Library:CreateTab(name, icon)
 		Parent = TabButton,
 	})
 
+	-- The actual page. Every component you add goes inside this.
 	local Page = new("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
@@ -289,7 +418,7 @@ function Library:CreateTab(name, icon)
 		ScrollBarThickness = 3,
 		ScrollBarImageColor3 = Theme.Stroke,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y, -- grows automatically as you add components
 		Visible = isFirst,
 		Parent = self.ContentArea,
 	}, {
@@ -299,6 +428,8 @@ function Library:CreateTab(name, icon)
 	local tabData = { Button = TabButton, Page = Page, Name = name }
 	table.insert(self.Tabs, tabData)
 
+	-- Clicking a tab button: show its page, hide every other page, and
+	-- re-color all the tab buttons so only the active one is highlighted.
 	TabButton.MouseButton1Click:Connect(function()
 		for _, t in ipairs(self.Tabs) do
 			local active = t == tabData
@@ -310,6 +441,7 @@ function Library:CreateTab(name, icon)
 		end
 	end)
 
+	-- Small hover highlight for inactive tabs.
 	TabButton.MouseEnter:Connect(function()
 		if not Page.Visible then
 			tween(TabButton, { BackgroundColor3 = Theme.Elevated })
@@ -324,10 +456,16 @@ function Library:CreateTab(name, icon)
 	return Page
 end
 
---========================================================
--- SHARED CARD BASE
--- every component sits on a rounded "card" with the label on top
---========================================================
+--=====================================================================
+-- 6. COMPONENTS
+-- Everything below adds ONE type of element to a tab. They all start
+-- with `tab` as the first argument — that's the Page you got back
+-- from Window:CreateTab(...).
+--=====================================================================
+
+-- Small helper: every component (Button, Toggle, Slider, etc.) sits on
+-- a rounded rectangle "card" of a given height. This just saves us
+-- from repeating the same 6 lines in every single component below.
 local function baseCard(parent, height, layoutOrder)
 	return new("Frame", {
 		Size = UDim2.new(1, 0, 0, height),
@@ -338,9 +476,10 @@ local function baseCard(parent, height, layoutOrder)
 	}, { corner(), stroke() })
 end
 
---========================================================
--- LABEL / SECTION HEADER
---========================================================
+----------------------------------------------------------------------
+-- LABEL — just a plain line of text. Good for instructions/info.
+-- Window:AddLabel(Tab, "This is a label")
+----------------------------------------------------------------------
 function Library:AddLabel(tab, text)
 	local card = new("Frame", {
 		Size = UDim2.new(1, 0, 0, 24),
@@ -360,6 +499,10 @@ function Library:AddLabel(tab, text)
 	return card
 end
 
+----------------------------------------------------------------------
+-- SECTION — a small bold uppercase heading, used to group components.
+-- Window:AddSection(Tab, "Movement")
+----------------------------------------------------------------------
 function Library:AddSection(tab, text)
 	local card = new("Frame", {
 		Size = UDim2.new(1, 0, 0, 30),
@@ -380,11 +523,32 @@ function Library:AddSection(tab, text)
 	return card
 end
 
---========================================================
--- BUTTON
---========================================================
+----------------------------------------------------------------------
+-- DIVIDER — a thin horizontal line, useful for separating groups.
+-- Window:AddDivider(Tab)
+----------------------------------------------------------------------
+function Library:AddDivider(tab)
+	local wrap = new("Frame", {
+		Size = UDim2.new(1, 0, 0, 13),
+		BackgroundTransparency = 1,
+		Parent = tab,
+	})
+	new("Frame", {
+		Size = UDim2.new(1, 0, 0, 1),
+		Position = UDim2.new(0, 0, 0.5, 0),
+		BackgroundColor3 = Theme.Stroke,
+		BorderSizePixel = 0,
+		Parent = wrap,
+	})
+	return wrap
+end
+
+----------------------------------------------------------------------
+-- BUTTON — a clickable card that runs `callback` when pressed.
+-- Window:AddButton(Tab, "Click me", function() print("clicked") end)
+----------------------------------------------------------------------
 function Library:AddButton(tab, text, callback)
-	callback = callback or function() end
+	callback = callback or function() end -- if you forget to pass a callback, this just does nothing instead of erroring
 	local card = baseCard(tab, 44)
 
 	local btn = new("TextButton", {
@@ -398,6 +562,7 @@ function Library:AddButton(tab, text, callback)
 		Parent = card,
 	})
 
+	-- lighten the card slightly on hover, and flash the accent color on click
 	btn.MouseEnter:Connect(function()
 		tween(card, { BackgroundColor3 = Theme.ElevatedHover })
 	end)
@@ -414,10 +579,16 @@ function Library:AddButton(tab, text, callback)
 	return btn
 end
 
---========================================================
--- TOGGLE
---========================================================
-function Library:AddToggle(tab, text, default, callback)
+----------------------------------------------------------------------
+-- TOGGLE — an on/off switch.
+-- Window:AddToggle(Tab, "Enable Fly", false, function(state) print(state) end, "FlyEnabled")
+--   tab      = the page to put it on
+--   text     = label shown next to the switch
+--   default  = true/false, starting state
+--   callback = function that runs whenever it's flipped, receives the new state
+--   flag     = (optional) name used for config saving, see the top of this file
+----------------------------------------------------------------------
+function Library:AddToggle(tab, text, default, callback, flag)
 	callback = callback or function() end
 	local state = default or false
 
@@ -435,6 +606,7 @@ function Library:AddToggle(tab, text, default, callback)
 		Parent = card,
 	})
 
+	-- the pill-shaped track behind the knob
 	local Switch = new("Frame", {
 		Size = UDim2.new(0, 42, 0, 22),
 		Position = UDim2.new(1, -56, 0.5, -11),
@@ -442,6 +614,7 @@ function Library:AddToggle(tab, text, default, callback)
 		Parent = card,
 	}, { corner(UDim.new(1, 0)) })
 
+	-- the circle that slides left/right
 	local Knob = new("Frame", {
 		Size = UDim2.new(0, 18, 0, 18),
 		Position = state and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9),
@@ -449,6 +622,8 @@ function Library:AddToggle(tab, text, default, callback)
 		Parent = Switch,
 	}, { corner(UDim.new(1, 0)) })
 
+	-- invisible button covering the whole card so clicking anywhere on
+	-- the row toggles it, not just the tiny switch itself
 	local ClickArea = new("TextButton", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
@@ -456,6 +631,8 @@ function Library:AddToggle(tab, text, default, callback)
 		Parent = card,
 	})
 
+	-- shared function so both clicking AND api.Set(...) go through the
+	-- same code path (updates visuals + fires the callback)
 	local function set(newState)
 		state = newState
 		tween(Switch, { BackgroundColor3 = state and Theme.Accent or Theme.Stroke })
@@ -467,13 +644,19 @@ function Library:AddToggle(tab, text, default, callback)
 		set(not state)
 	end)
 
-	return { Set = set, Get = function() return state end }
+	-- Returned so you can control the toggle from outside, e.g.
+	-- myToggle.Set(true) or if myToggle.Get() then ... end
+	local api = { Set = set, Get = function() return state end }
+	if flag then Library.Flags[flag] = api end -- register for config saving, if a flag was given
+	return api
 end
 
---========================================================
--- CHECKBOX (compact alternative to Toggle)
---========================================================
-function Library:AddCheckbox(tab, text, default, callback)
+----------------------------------------------------------------------
+-- CHECKBOX — a compact tick-box alternative to Toggle. Same idea, just
+-- a different look — pick whichever style you prefer for a given option.
+-- Window:AddCheckbox(Tab, "Show FPS", true, function(state) end, "ShowFPS")
+----------------------------------------------------------------------
+function Library:AddCheckbox(tab, text, default, callback, flag)
 	callback = callback or function() end
 	local state = default or false
 
@@ -493,7 +676,7 @@ function Library:AddCheckbox(tab, text, default, callback)
 		Font = Theme.FontBold,
 		TextSize = 14,
 		TextColor3 = Theme.Text,
-		TextTransparency = state and 0 or 1,
+		TextTransparency = state and 0 or 1, -- hidden (transparent) checkmark when unticked
 		Parent = Box,
 	})
 
@@ -527,16 +710,21 @@ function Library:AddCheckbox(tab, text, default, callback)
 		set(not state)
 	end)
 
-	return { Set = set, Get = function() return state end }
+	local api = { Set = set, Get = function() return state end }
+	if flag then Library.Flags[flag] = api end
+	return api
 end
 
---========================================================
--- SLIDER
---========================================================
-function Library:AddSlider(tab, text, min, max, default, callback)
+----------------------------------------------------------------------
+-- SLIDER — drag left/right to pick a whole number between min and max.
+-- Window:AddSlider(Tab, "WalkSpeed", 16, 100, 16, function(value) end, "WalkSpeed")
+--   min/max = the allowed range
+--   default = starting value
+----------------------------------------------------------------------
+function Library:AddSlider(tab, text, min, max, default, callback, flag)
 	callback = callback or function() end
 	min, max = min or 0, max or 100
-	local value = math.clamp(default or min, min, max)
+	local value = math.clamp(default or min, min, max) -- clamp = force the number to stay inside [min, max]
 
 	local card = baseCard(tab, 54)
 
@@ -552,6 +740,7 @@ function Library:AddSlider(tab, text, min, max, default, callback)
 		Parent = card,
 	})
 
+	-- shows the current numeric value, top right
 	local ValueLabel = new("TextLabel", {
 		Size = UDim2.new(0, 50, 0, 20),
 		Position = UDim2.new(1, -64, 0, 6),
@@ -564,6 +753,7 @@ function Library:AddSlider(tab, text, min, max, default, callback)
 		Parent = card,
 	})
 
+	-- the background bar the knob slides along
 	local Track = new("Frame", {
 		Size = UDim2.new(1, -28, 0, 6),
 		Position = UDim2.new(0, 14, 1, -18),
@@ -571,6 +761,7 @@ function Library:AddSlider(tab, text, min, max, default, callback)
 		Parent = card,
 	}, { corner(UDim.new(1, 0)) })
 
+	-- the colored portion showing "how far along" the value is
 	local Fill = new("Frame", {
 		Size = UDim2.new((value - min) / (max - min), 0, 1, 0),
 		BackgroundColor3 = Theme.Accent,
@@ -587,15 +778,18 @@ function Library:AddSlider(tab, text, min, max, default, callback)
 
 	local dragging = false
 
+	-- Works out the new value based on where the mouse/finger is,
+	-- relative to the track's position on screen (0 = left edge, 1 = right edge).
 	local function updateFromInput(inputPos)
 		local relative = math.clamp((inputPos.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
-		value = math.floor(min + (max - min) * relative + 0.5)
+		value = math.floor(min + (max - min) * relative + 0.5) -- +0.5 then floor = round to nearest whole number
 		Fill.Size = UDim2.new(relative, 0, 1, 0)
 		Knob.Position = UDim2.new(relative, -7, 0.5, -7)
 		ValueLabel.Text = tostring(value)
 		callback(value)
 	end
 
+	-- start dragging when you click/tap the track
 	Track.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
@@ -607,25 +801,32 @@ function Library:AddSlider(tab, text, min, max, default, callback)
 			dragging = false
 		end
 	end)
-	game:GetService("UserInputService").InputChanged:Connect(function(input)
+	-- while dragging, follow the mouse/finger even if it moves outside the track itself
+	UserInputService.InputChanged:Connect(function(input)
 		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			updateFromInput(input.Position)
 		end
 	end)
 
-	return {
+	local api = {
 		Set = function(v)
 			v = math.clamp(v, min, max)
+			-- reuse updateFromInput by faking a mouse position that
+			-- corresponds to the value we want
 			updateFromInput(Vector2.new(Track.AbsolutePosition.X + (v - min) / (max - min) * Track.AbsoluteSize.X, 0))
 		end,
 		Get = function() return value end,
 	}
+	if flag then Library.Flags[flag] = api end
+	return api
 end
 
---========================================================
--- TEXTBOX
---========================================================
-function Library:AddTextbox(tab, placeholder, callback)
+----------------------------------------------------------------------
+-- TEXTBOX — a single-line text input.
+-- Window:AddTextbox(Tab, "Enter your name...", function(text, enterPressed) end, "PlayerName")
+-- The callback fires when the box loses focus (you click away or press Enter).
+----------------------------------------------------------------------
+function Library:AddTextbox(tab, placeholder, callback, flag)
 	callback = callback or function() end
 	local card = baseCard(tab, 44)
 
@@ -639,7 +840,7 @@ function Library:AddTextbox(tab, placeholder, callback)
 		Font = Theme.Font,
 		TextSize = 14,
 		TextColor3 = Theme.Text,
-		ClearTextOnFocus = false,
+		ClearTextOnFocus = false, -- don't wipe existing text every time you click into it
 		Parent = card,
 	}, { corner(UDim.new(0, 6)), padding(0, 0, 8, 0, 8) })
 
@@ -651,20 +852,28 @@ function Library:AddTextbox(tab, placeholder, callback)
 		callback(Box.Text, enterPressed)
 	end)
 
+	if flag then
+		Library.Flags[flag] = {
+			Set = function(v) Box.Text = tostring(v) end,
+			Get = function() return Box.Text end,
+		}
+	end
+
 	return Box
 end
 
---========================================================
--- DROPDOWN
---========================================================
-function Library:AddDropdown(tab, text, options, default, callback)
+----------------------------------------------------------------------
+-- DROPDOWN — pick one option from a list. Click to expand/collapse.
+-- Window:AddDropdown(Tab, "Theme", {"Dark", "Light"}, "Dark", function(choice) end, "SelectedTheme")
+----------------------------------------------------------------------
+function Library:AddDropdown(tab, text, options, default, callback, flag)
 	callback = callback or function() end
 	options = options or {}
 	local selected = default or options[1]
 	local open = false
 
 	local card = baseCard(tab, 44)
-	card.ClipsDescendants = true
+	card.ClipsDescendants = true -- hides the option list until the card is resized taller
 	card.ZIndex = 2
 
 	new("TextLabel", {
@@ -679,6 +888,7 @@ function Library:AddDropdown(tab, text, options, default, callback)
 		Parent = card,
 	})
 
+	-- shows the currently selected option, click it to open/close the list
 	local Selected = new("TextButton", {
 		Size = UDim2.new(0.5, -14, 0, 30),
 		Position = UDim2.new(0.5, 0, 0, 7),
@@ -699,6 +909,7 @@ function Library:AddDropdown(tab, text, options, default, callback)
 		Parent = card,
 	}, { corner(UDim.new(0, 6)), listLayout(Enum.FillDirection.Vertical, 0) })
 
+	-- create one button per option
 	for i, option in ipairs(options) do
 		local optBtn = new("TextButton", {
 			Size = UDim2.new(1, 0, 0, 30),
@@ -722,34 +933,274 @@ function Library:AddDropdown(tab, text, options, default, callback)
 			Selected.Text = tostring(option) .. "  ▾"
 			open = false
 			OptionsList.Visible = false
-			tween(card, { Size = UDim2.new(1, 0, 0, 44) })
+			tween(card, { Size = UDim2.new(1, 0, 0, 44) }) -- shrink back down
 			callback(option)
 		end)
 	end
 
+	-- clicking the "Selected" button grows/shrinks the card to reveal the list
 	Selected.MouseButton1Click:Connect(function()
 		open = not open
 		OptionsList.Visible = open
 		tween(card, { Size = open and UDim2.new(1, 0, 0, 48 + #options * 30 + 8) or UDim2.new(1, 0, 0, 44) })
 	end)
 
-	return {
+	local api = {
 		Set = function(v)
 			selected = v
 			Selected.Text = tostring(v) .. "  ▾"
 		end,
 		Get = function() return selected end,
 	}
+	if flag then Library.Flags[flag] = api end
+	return api
 end
 
---========================================================
--- NOTIFICATION
---========================================================
+----------------------------------------------------------------------
+-- COLOR PICKER — three sliders (Red, Green, Blue) inside an expandable
+-- card, same click-to-expand idea as the Dropdown above.
+-- Window:AddColorPicker(Tab, "ESP Color", Color3.fromRGB(255,0,0), function(color) end, "ESPColor")
+----------------------------------------------------------------------
+function Library:AddColorPicker(tab, text, default, callback, flag)
+	callback = callback or function() end
+	local color = default or Color3.fromRGB(255, 255, 255)
+	local open = false
+
+	local card = baseCard(tab, 44)
+	card.ClipsDescendants = true
+
+	new("TextLabel", {
+		Size = UDim2.new(1, -70, 0, 44),
+		Position = UDim2.new(0, 14, 0, 0),
+		BackgroundTransparency = 1,
+		Text = text,
+		Font = Theme.Font,
+		TextSize = 14,
+		TextColor3 = Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = card,
+	})
+
+	-- the little colored square preview, click it to open the sliders
+	local Swatch = new("TextButton", {
+		Size = UDim2.new(0, 30, 0, 30),
+		Position = UDim2.new(1, -44, 0, 7),
+		BackgroundColor3 = color,
+		Text = "",
+		AutoButtonColor = false,
+		Parent = card,
+	}, { corner(UDim.new(0, 6)), stroke() })
+
+	local Panel = new("Frame", {
+		Size = UDim2.new(1, -28, 0, 100),
+		Position = UDim2.new(0, 14, 0, 52),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = card,
+	}, { listLayout(Enum.FillDirection.Vertical, 10) })
+
+	local channels = { { key = "R", index = 1 }, { key = "G", index = 2 }, { key = "B", index = 3 } }
+	local sliderApis = {} -- will hold Get/Set for each of the 3 RGB sliders
+
+	-- combines the 3 slider values back into one Color3 and fires the callback
+	local function updateColor()
+		local r, g, b = sliderApis[1]:Get(), sliderApis[2]:Get(), sliderApis[3]:Get()
+		color = Color3.fromRGB(r, g, b)
+		Swatch.BackgroundColor3 = color
+		callback(color)
+	end
+
+	-- build one mini-slider row per RGB channel
+	for _, ch in ipairs(channels) do
+		local row = new("Frame", {
+			Size = UDim2.new(1, 0, 0, 26),
+			BackgroundTransparency = 1,
+		})
+		new("TextLabel", {
+			Size = UDim2.new(0, 16, 1, 0),
+			BackgroundTransparency = 1,
+			Text = ch.key,
+			Font = Theme.FontBold,
+			TextSize = 12,
+			TextColor3 = Theme.SubText,
+			Parent = row,
+		})
+		local track = new("Frame", {
+			Size = UDim2.new(1, -24, 0, 6),
+			Position = UDim2.new(0, 22, 0.5, -3),
+			BackgroundColor3 = Theme.Stroke,
+			Parent = row,
+		}, { corner(UDim.new(1, 0)) })
+
+		-- figure out this channel's starting slider position from the default color
+		local startVal = ch.index == 1 and color.R * 255 or (ch.index == 2 and color.G * 255 or color.B * 255)
+		local fill = new("Frame", {
+			Size = UDim2.new(startVal / 255, 0, 1, 0),
+			BackgroundColor3 = Theme.Accent,
+			Parent = track,
+		}, { corner(UDim.new(1, 0)) })
+		local knob = new("Frame", {
+			Size = UDim2.new(0, 12, 0, 12),
+			Position = UDim2.new(startVal / 255, -6, 0.5, -6),
+			BackgroundColor3 = Theme.Text,
+			ZIndex = 2,
+			Parent = track,
+		}, { corner(UDim.new(1, 0)) })
+
+		local dragging = false
+		local value = startVal
+
+		-- same drag-to-set-value idea as the main Slider component above,
+		-- just scoped to 0-255 for a single color channel
+		local function updateFromInput(x)
+			local relative = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+			value = math.floor(255 * relative + 0.5)
+			fill.Size = UDim2.new(relative, 0, 1, 0)
+			knob.Position = UDim2.new(relative, -6, 0.5, -6)
+			updateColor()
+		end
+		track.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = true
+				updateFromInput(input.Position.X)
+			end
+		end)
+		track.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = false
+			end
+		end)
+		UserInputService.InputChanged:Connect(function(input)
+			if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+				updateFromInput(input.Position.X)
+			end
+		end)
+
+		sliderApis[ch.index] = {
+			Get = function() return value end,
+			Set = function(v)
+				value = v
+				local relative = v / 255
+				fill.Size = UDim2.new(relative, 0, 1, 0)
+				knob.Position = UDim2.new(relative, -6, 0.5, -6)
+			end,
+		}
+
+		row.Parent = Panel
+	end
+
+	-- clicking the swatch expands/collapses the RGB sliders panel
+	Swatch.MouseButton1Click:Connect(function()
+		open = not open
+		Panel.Visible = open
+		tween(card, { Size = open and UDim2.new(1, 0, 0, 44 + 108 + 8) or UDim2.new(1, 0, 0, 44) })
+	end)
+
+	local api = {
+		Set = function(c)
+			color = c
+			Swatch.BackgroundColor3 = c
+			sliderApis[1].Set(math.floor(c.R * 255 + 0.5))
+			sliderApis[2].Set(math.floor(c.G * 255 + 0.5))
+			sliderApis[3].Set(math.floor(c.B * 255 + 0.5))
+		end,
+		Get = function() return color end,
+	}
+	if flag then Library.Flags[flag] = api end
+	return api
+end
+
+----------------------------------------------------------------------
+-- KEYBIND — click the box, then press any key to bind it. The
+-- callback fires every time that key is pressed afterwards (great for
+-- "press this key to toggle X" style features).
+-- Window:AddKeybind(Tab, "Toggle Menu", Enum.KeyCode.RightShift, function() end, "MenuKey")
+----------------------------------------------------------------------
+function Library:AddKeybind(tab, text, default, callback, flag)
+	callback = callback or function() end
+	local bound = default or Enum.KeyCode.Unknown
+	local listening = false -- true while we're waiting for the player to press a key
+
+	local card = baseCard(tab, 44)
+
+	new("TextLabel", {
+		Size = UDim2.new(1, -110, 1, 0),
+		Position = UDim2.new(0, 14, 0, 0),
+		BackgroundTransparency = 1,
+		Text = text,
+		Font = Theme.Font,
+		TextSize = 14,
+		TextColor3 = Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = card,
+	})
+
+	local KeyBtn = new("TextButton", {
+		Size = UDim2.new(0, 90, 0, 30),
+		Position = UDim2.new(1, -104, 0.5, -15),
+		BackgroundColor3 = Theme.Background,
+		Text = bound == Enum.KeyCode.Unknown and "..." or bound.Name,
+		Font = Theme.FontBold,
+		TextSize = 12,
+		TextColor3 = Theme.SubText,
+		AutoButtonColor = false,
+		Parent = card,
+	}, { corner(UDim.new(0, 6)), stroke() })
+
+	-- click the box to start "listening" for the next key press
+	KeyBtn.MouseButton1Click:Connect(function()
+		listening = true
+		KeyBtn.Text = "..."
+		tween(KeyBtn, { BackgroundColor3 = Theme.ElevatedHover })
+	end)
+
+	-- this connection ONLY runs while listening=true, and captures
+	-- whatever key is pressed next as the new bind
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if not listening then return end
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			bound = input.KeyCode
+			KeyBtn.Text = bound.Name
+			listening = false
+			tween(KeyBtn, { BackgroundColor3 = Theme.Background })
+		end
+	end)
+
+	-- this SEPARATE connection fires the callback whenever the already-
+	-- bound key is pressed (but not while we're mid-rebind, and not if
+	-- Roblox already used the input for something like chat)
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if listening or gameProcessed then return end
+		if input.KeyCode == bound then
+			callback(bound)
+		end
+	end)
+
+	local api = {
+		Set = function(key)
+			bound = key
+			KeyBtn.Text = key.Name
+		end,
+		Get = function() return bound end,
+	}
+	if flag then Library.Flags[flag] = api end
+	return api
+end
+
+--=====================================================================
+-- 7. NOTIFY
+-- Pops up a small toast message in the top-right corner that fades
+-- out on its own after `duration` seconds.
+-- Window:Notify("Saved", "Your settings were saved!", 3)
+--=====================================================================
 function Library:Notify(title, text, duration)
 	duration = duration or 3
-	local gui = player:WaitForChild("PlayerGui"):FindFirstChild("UILibrary")
-	if not gui then return end
 
+	local gui = player:WaitForChild("PlayerGui"):FindFirstChild("UILibrary")
+	if not gui then return end -- window was closed / never created, nothing to attach to
+
+	-- all notifications stack inside one shared holder frame, created
+	-- the first time Notify() is called
 	local holder = gui:FindFirstChild("NotificationHolder")
 	if not holder then
 		holder = new("Frame", {
@@ -764,7 +1215,7 @@ function Library:Notify(title, text, duration)
 	local card = new("Frame", {
 		Size = UDim2.new(1, 0, 0, 60),
 		BackgroundColor3 = Theme.Elevated,
-		BackgroundTransparency = 1,
+		BackgroundTransparency = 1, -- starts invisible, we fade it in below
 		Parent = holder,
 	}, { corner(), stroke() })
 
@@ -796,6 +1247,7 @@ function Library:Notify(title, text, duration)
 		Parent = card,
 	})
 
+	-- fade everything IN
 	tween(card, { BackgroundTransparency = 0 }, 0.25)
 	for _, label in ipairs(card:GetChildren()) do
 		if label:IsA("TextLabel") then
@@ -803,6 +1255,7 @@ function Library:Notify(title, text, duration)
 		end
 	end
 
+	-- wait, then fade everything OUT and delete it
 	task.delay(duration, function()
 		tween(card, { BackgroundTransparency = 1 }, 0.25)
 		for _, label in ipairs(card:GetChildren()) do
@@ -815,4 +1268,117 @@ function Library:Notify(title, text, duration)
 	end)
 end
 
+--=====================================================================
+-- 8. CONFIG SAVE / LOAD (JSON)
+--
+-- Any component created with a trailing `flag` argument (e.g.
+-- Window:AddToggle(Tab, "Fly", false, callback, "FlyEnabled")) gets
+-- tracked automatically in Library.Flags. These two functions turn
+-- all of that into a JSON string and save/load it.
+--
+-- Storage backend is auto-detected, so you don't need to change your
+-- code depending on where the script runs:
+--   • Executors (Synapse, Script-Ware, etc.) -> saved as a real
+--     .json file using writefile/readfile
+--   • Roblox Studio / published games -> DataStoreService, keyed by
+--     the config name (in Studio you must turn on "Enable Studio
+--     Access to API Services" under Game Settings > Security)
+--=====================================================================
+
+-- Turns every flagged value into a plain table ready for JSONEncode.
+-- Color3 and Enum values need special handling since JSON can't store
+-- them directly — we convert them into small marked tables instead.
+local function serializeFlags()
+	local data = {}
+	for flag, api in pairs(Library.Flags) do
+		local ok, value = pcall(api.Get)
+		if ok then
+			if typeof(value) == "Color3" then
+				data[flag] = { __type = "Color3", r = value.R, g = value.G, b = value.B }
+			elseif typeof(value) == "EnumItem" then
+				data[flag] = { __type = "EnumItem", name = value.Name }
+			else
+				data[flag] = value
+			end
+		end
+	end
+	return data
+end
+
+-- Reverses serializeFlags(): reads the saved table and calls .Set(...)
+-- on every matching component to restore its value.
+local function applyFlags(data)
+	for flag, value in pairs(data) do
+		local api = Library.Flags[flag]
+		if api then
+			if type(value) == "table" and value.__type == "Color3" then
+				api.Set(Color3.new(value.r, value.g, value.b))
+			elseif type(value) == "table" and value.__type == "EnumItem" then
+				api.Set(Enum.KeyCode[value.name])
+			else
+				api.Set(value)
+			end
+		end
+	end
+end
+
+-- Returns the current config as a raw JSON string, in case you want
+-- to handle saving it yourself (e.g. send it somewhere else).
+function Library:GetConfigJSON()
+	return HttpService:JSONEncode(serializeFlags())
+end
+
+-- Saves every flagged value under the given config `name`.
+-- Returns true/false for success, and an error message if it failed.
+function Library:SaveConfig(name)
+	name = name or "default"
+	local json = self:GetConfigJSON()
+
+	if writefile then
+		-- we're in an executor, so save a real file
+		local ok, err = pcall(function()
+			if not isfolder or not isfolder("UILibraryConfigs") then
+				if makefolder then makefolder("UILibraryConfigs") end
+			end
+			writefile("UILibraryConfigs/" .. name .. ".json", json)
+		end)
+		return ok, err
+	else
+		-- we're in Studio / a published game, so use DataStores instead
+		local DataStoreService = game:GetService("DataStoreService")
+		local store = DataStoreService:GetDataStore("UILibraryConfigs")
+		local ok, err = pcall(function()
+			store:SetAsync(name, json)
+		end)
+		return ok, err
+	end
+end
+
+-- Loads a previously-saved config by `name` and applies it to every
+-- matching flagged component. Returns true if it successfully loaded
+-- something, false otherwise (e.g. no config was ever saved).
+function Library:LoadConfig(name)
+	name = name or "default"
+	local ok, result = pcall(function()
+		local json
+
+		if readfile and isfile and isfile("UILibraryConfigs/" .. name .. ".json") then
+			json = readfile("UILibraryConfigs/" .. name .. ".json")
+		else
+			local DataStoreService = game:GetService("DataStoreService")
+			local store = DataStoreService:GetDataStore("UILibraryConfigs")
+			json = store:GetAsync(name)
+		end
+
+		if not json then return false end
+
+		local data = HttpService:JSONDecode(json)
+		applyFlags(data)
+		return true
+	end)
+	return ok and result
+end
+
+-- This is the last line: it makes everything above accessible to
+-- whoever wrote `local Library = loadstring(...)()` to load this file.
 return Library
