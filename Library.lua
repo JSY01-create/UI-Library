@@ -187,6 +187,13 @@ end
 
 -- Makes `target` movable by clicking and dragging `handle`.
 -- Used so you can drag the window around by its title bar.
+--
+-- IMPORTANT: we listen for mouse movement on UserInputService (global,
+-- covers the whole screen) rather than on `handle` itself. If we used
+-- handle.InputChanged instead, moving the mouse fast enough to outrun
+-- the title bar's hitbox for a single frame would stop the drag from
+-- receiving updates — which is exactly why fast drags used to feel
+-- like the cursor "left" the UI and the window fell behind it.
 local function makeDraggable(handle, target)
 	local dragging, dragStart, startPos
 
@@ -195,17 +202,18 @@ local function makeDraggable(handle, target)
 			dragging = true
 			dragStart = input.Position
 			startPos = target.Position
-
-			-- stop dragging once the mouse/finger is released
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false
-				end
-			end)
 		end
 	end)
 
-	handle.InputChanged:Connect(function(input)
+	-- stop dragging once the mouse/finger is released, no matter where
+	-- on screen that happens (also global, for the same reason as above)
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
 		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local delta = input.Position - dragStart
 			target.Position = UDim2.new(
