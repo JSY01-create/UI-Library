@@ -132,11 +132,11 @@ end
 -- ever need to edit this ONE table.
 --=====================================================================
 local Theme = {
-	Background    = Color3.fromRGB(24, 24, 27),   -- main window background
-	Sidebar       = Color3.fromRGB(19, 19, 21),    -- tab list + title bar background
-	Elevated      = Color3.fromRGB(32, 32, 36),    -- default color of buttons/cards
-	ElevatedHover = Color3.fromRGB(40, 40, 45),    -- color of buttons/cards on hover
-	Stroke        = Color3.fromRGB(46, 46, 51),    -- thin border color around cards
+	Background    = Color3.fromRGB(22, 22, 25),   -- main window background
+	Sidebar       = Color3.fromRGB(14, 14, 16),    -- tab list + title bar background (noticeably darker than Background)
+	Elevated      = Color3.fromRGB(34, 34, 39),    -- default color of buttons/cards (noticeably lighter than Background)
+	ElevatedHover = Color3.fromRGB(44, 44, 50),    -- color of buttons/cards on hover
+	Stroke        = Color3.fromRGB(56, 56, 63),    -- thin border color around cards
 	Accent        = Color3.fromRGB(114, 137, 255), -- your "brand" color (toggles, sliders, active tab)
 	AccentHover   = Color3.fromRGB(132, 152, 255),
 	Text          = Color3.fromRGB(235, 235, 240), -- main text color
@@ -148,8 +148,8 @@ local Theme = {
 	FontBold      = Enum.Font.GothamBold,          -- bold text font (titles, active tab)
 
 	CornerRadius  = UDim.new(0, 8),  -- how rounded corners are, in pixels
-	Padding       = 12,              -- space around the inside edge of the content area
-	ItemGap       = 8,               -- vertical space between components in a tab
+	Padding       = 16,              -- space around the inside edge of the content area
+	ItemGap       = 6,               -- vertical space between components in a tab
 }
 
 Library.Theme = Theme -- exposed in case you want to read/tweak it from outside this file too
@@ -191,11 +191,11 @@ Library.Theme = Theme -- exposed in case you want to read/tweak it from outside 
 --=====================================================================
 Library.ThemePresets = {
 	Dark = {
-		Background = Color3.fromRGB(24, 24, 27),
-		Sidebar = Color3.fromRGB(19, 19, 21),
-		Elevated = Color3.fromRGB(32, 32, 36),
-		ElevatedHover = Color3.fromRGB(40, 40, 45),
-		Stroke = Color3.fromRGB(46, 46, 51),
+		Background = Color3.fromRGB(22, 22, 25),
+		Sidebar = Color3.fromRGB(14, 14, 16),
+		Elevated = Color3.fromRGB(34, 34, 39),
+		ElevatedHover = Color3.fromRGB(44, 44, 50),
+		Stroke = Color3.fromRGB(56, 56, 63),
 		Accent = Color3.fromRGB(114, 137, 255),
 		AccentHover = Color3.fromRGB(132, 152, 255),
 		Text = Color3.fromRGB(235, 235, 240),
@@ -205,10 +205,10 @@ Library.ThemePresets = {
 	},
 	Light = {
 		Background = Color3.fromRGB(246, 246, 249),
-		Sidebar = Color3.fromRGB(235, 235, 240),
+		Sidebar = Color3.fromRGB(224, 224, 231),
 		Elevated = Color3.fromRGB(255, 255, 255),
-		ElevatedHover = Color3.fromRGB(244, 244, 248),
-		Stroke = Color3.fromRGB(220, 220, 226),
+		ElevatedHover = Color3.fromRGB(238, 238, 244),
+		Stroke = Color3.fromRGB(212, 212, 220),
 		Accent = Color3.fromRGB(88, 101, 242),
 		AccentHover = Color3.fromRGB(109, 122, 255),
 		Text = Color3.fromRGB(24, 24, 27),
@@ -217,11 +217,11 @@ Library.ThemePresets = {
 		Danger = Color3.fromRGB(215, 65, 65),
 	},
 	Sakura = {
-		Background = Color3.fromRGB(30, 21, 26),
-		Sidebar = Color3.fromRGB(24, 17, 21),
-		Elevated = Color3.fromRGB(41, 29, 36),
-		ElevatedHover = Color3.fromRGB(50, 36, 44),
-		Stroke = Color3.fromRGB(63, 44, 53),
+		Background = Color3.fromRGB(28, 19, 24),
+		Sidebar = Color3.fromRGB(18, 12, 16),
+		Elevated = Color3.fromRGB(46, 32, 40),
+		ElevatedHover = Color3.fromRGB(58, 41, 51),
+		Stroke = Color3.fromRGB(72, 50, 61),
 		Accent = Color3.fromRGB(245, 140, 181),
 		AccentHover = Color3.fromRGB(250, 165, 199),
 		Text = Color3.fromRGB(248, 237, 240),
@@ -230,11 +230,11 @@ Library.ThemePresets = {
 		Danger = Color3.fromRGB(235, 100, 120),
 	},
 	Midnight = {
-		Background = Color3.fromRGB(13, 15, 24),
-		Sidebar = Color3.fromRGB(9, 11, 18),
-		Elevated = Color3.fromRGB(19, 22, 34),
-		ElevatedHover = Color3.fromRGB(25, 29, 43),
-		Stroke = Color3.fromRGB(33, 38, 54),
+		Background = Color3.fromRGB(12, 14, 22),
+		Sidebar = Color3.fromRGB(6, 7, 13),
+		Elevated = Color3.fromRGB(22, 26, 40),
+		ElevatedHover = Color3.fromRGB(30, 35, 52),
+		Stroke = Color3.fromRGB(41, 47, 66),
 		Accent = Color3.fromRGB(99, 179, 255),
 		AccentHover = Color3.fromRGB(130, 197, 255),
 		Text = Color3.fromRGB(230, 236, 245),
@@ -243,11 +243,11 @@ Library.ThemePresets = {
 		Danger = Color3.fromRGB(235, 90, 100),
 	},
 	Ocean = {
-		Background = Color3.fromRGB(14, 24, 27),
-		Sidebar = Color3.fromRGB(10, 19, 21),
-		Elevated = Color3.fromRGB(20, 34, 38),
-		ElevatedHover = Color3.fromRGB(26, 43, 48),
-		Stroke = Color3.fromRGB(34, 54, 59),
+		Background = Color3.fromRGB(13, 22, 25),
+		Sidebar = Color3.fromRGB(7, 14, 16),
+		Elevated = Color3.fromRGB(24, 40, 45),
+		ElevatedHover = Color3.fromRGB(32, 52, 58),
+		Stroke = Color3.fromRGB(43, 66, 72),
 		Accent = Color3.fromRGB(64, 200, 197),
 		AccentHover = Color3.fromRGB(94, 216, 213),
 		Text = Color3.fromRGB(226, 245, 244),
@@ -256,11 +256,11 @@ Library.ThemePresets = {
 		Danger = Color3.fromRGB(235, 100, 95),
 	},
 	Crimson = {
-		Background = Color3.fromRGB(24, 16, 17),
-		Sidebar = Color3.fromRGB(19, 12, 13),
-		Elevated = Color3.fromRGB(35, 22, 23),
-		ElevatedHover = Color3.fromRGB(44, 28, 29),
-		Stroke = Color3.fromRGB(58, 36, 37),
+		Background = Color3.fromRGB(22, 15, 16),
+		Sidebar = Color3.fromRGB(14, 9, 9),
+		Elevated = Color3.fromRGB(40, 25, 26),
+		ElevatedHover = Color3.fromRGB(51, 32, 33),
+		Stroke = Color3.fromRGB(65, 40, 41),
 		Accent = Color3.fromRGB(230, 75, 80),
 		AccentHover = Color3.fromRGB(240, 105, 108),
 		Text = Color3.fromRGB(245, 234, 234),
@@ -540,6 +540,29 @@ function Library:CreateWindow(config)
 		BackgroundColor3 = Theme.Sidebar,
 		BorderSizePixel = 0,
 		Parent = MainFrame,
+	}, { corner(UDim.new(0, 10)) })
+
+	-- The corner() above rounds all four of the sidebar's corners, but
+	-- only the bottom-left one actually sits on top of MainFrame's
+	-- rounded corner (the top-left is tucked under the title bar, and
+	-- the right two are interior corners against the content area) —
+	-- so without this, the sidebar's own rounding would poke a curved
+	-- notch into those three straight edges. These two patches just
+	-- square them back off, matching the exact bug-fix trick used for
+	-- the title bar above, leaving only the bottom-left corner rounded.
+	new("Frame", {
+		Size = UDim2.new(0, 10, 0, 10),
+		Position = UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = Theme.Sidebar,
+		BorderSizePixel = 0,
+		Parent = Sidebar,
+	})
+	new("Frame", {
+		Size = UDim2.new(0, 10, 1, 0),
+		Position = UDim2.new(1, -10, 0, 0),
+		BackgroundColor3 = Theme.Sidebar,
+		BorderSizePixel = 0,
+		Parent = Sidebar,
 	})
 
 	-- Tab buttons get added inside this ScrollingFrame so if you add
@@ -652,6 +675,7 @@ function Library:CreateTab(name, icon)
 		Parent = self.ContentArea,
 	}, {
 		listLayout(Enum.FillDirection.Vertical, Theme.ItemGap),
+		padding(0, 0, 6, 0, 0), -- small right-side gap so cards don't butt up against the scrollbar
 	})
 
 	local tabData = { Button = TabButton, Page = Page, Name = name }
@@ -738,13 +762,13 @@ end
 ----------------------------------------------------------------------
 function Library:AddSection(tab, text)
 	local card = new("Frame", {
-		Size = UDim2.new(1, 0, 0, 30),
+		Size = UDim2.new(1, 0, 0, 26),
 		BackgroundTransparency = 1,
 		Parent = tab,
 	})
 	new("TextLabel", {
 		Size = UDim2.new(1, 0, 0, 18),
-		Position = UDim2.new(0, 0, 0, 6),
+		Position = UDim2.new(0, 0, 0, 4),
 		BackgroundTransparency = 1,
 		Text = text:upper(),
 		Font = Theme.FontBold,
@@ -782,7 +806,7 @@ end
 ----------------------------------------------------------------------
 function Library:AddButton(tab, text, callback)
 	callback = callback or function() end -- if you forget to pass a callback, this just does nothing instead of erroring
-	local card = baseCard(tab, 44)
+	local card = baseCard(tab, 38)
 
 	local btn = new("TextButton", {
 		Size = UDim2.new(1, 0, 1, 0),
@@ -825,7 +849,7 @@ function Library:AddToggle(tab, text, default, callback, flag)
 	callback = callback or function() end
 	local state = default or false
 
-	local card = baseCard(tab, 44)
+	local card = baseCard(tab, 38)
 
 	new("TextLabel", {
 		Size = UDim2.new(1, -70, 1, 0),
@@ -893,7 +917,7 @@ function Library:AddCheckbox(tab, text, default, callback, flag)
 	callback = callback or function() end
 	local state = default or false
 
-	local card = baseCard(tab, 40)
+	local card = baseCard(tab, 36)
 
 	local Box = new("Frame", {
 		Size = UDim2.new(0, 20, 0, 20),
@@ -959,7 +983,7 @@ function Library:AddSlider(tab, text, min, max, default, callback, flag)
 	min, max = min or 0, max or 100
 	local value = math.clamp(default or min, min, max) -- clamp = force the number to stay inside [min, max]
 
-	local card = baseCard(tab, 54)
+	local card = baseCard(tab, 50)
 
 	new("TextLabel", {
 		Size = UDim2.new(1, -70, 0, 20),
@@ -1061,7 +1085,7 @@ end
 ----------------------------------------------------------------------
 function Library:AddTextbox(tab, placeholder, callback, flag)
 	callback = callback or function() end
-	local card = baseCard(tab, 44)
+	local card = baseCard(tab, 38)
 
 	local Box = new("TextBox", {
 		Size = UDim2.new(1, -28, 1, -16),
