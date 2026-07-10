@@ -1,16 +1,16 @@
 --[[
 	=====================================================================
-	 UI LIBRARY  —  a beginner-friendly Roblox UI kit
+	 AURORA UI  —  a beginner-friendly Roblox UI kit
 	=====================================================================
 
 	HOW TO USE THIS (quick start):
 
 		1. Load the library:
-			local Library = loadstring(game:HttpGet("YOUR_RAW_GITHUB_URL"))()
+			local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/JSY01-create/UI-Library/refs/heads/main/Library.lua"))()
 
 		2. Create a window (this is the whole popup box you see):
 			local Window = Library:CreateWindow({
-				Title = "My Library",
+				Title = "Aurora",
 				Subtitle = "v1.0"
 			})
 
@@ -70,7 +70,7 @@ local player = Players.LocalPlayer
 -- If you run this script twice (e.g. from the Studio command bar while
 -- testing), this deletes the old UI first so you don't end up with two
 -- windows stacked on top of each other.
-local existingGui = player:WaitForChild("PlayerGui"):FindFirstChild("UILibrary")
+local existingGui = player:WaitForChild("PlayerGui"):FindFirstChild("Aurora")
 if existingGui then
 	existingGui:Destroy()
 end
@@ -85,6 +85,45 @@ Library.__index = Library
 -- This table stores every component that was given a `flag`, so config
 -- saving/loading can find them later. You don't need to touch this.
 Library.Flags = {}
+
+--=====================================================================
+-- LUCIDE ICONS
+-- Tabs can show a proper icon (from the Lucide icon set, lucide.dev)
+-- instead of just an emoji. This library doesn't download icons for
+-- you automatically — executors sandbox/HttpGet unpredictably, so
+-- baking in a live fetch would make tabs randomly break. Instead you
+-- register the ones you want once, up front, and every CreateTab call
+-- after that can just use the icon's name.
+--
+-- HOW TO GET ICON IDS:
+--   Go to https://icons.rest (a searchable Lucide → Roblox asset id
+--   catalogue) or https://github.com/latte-soft/lucide-roblox,
+--   search for the icon you want (e.g. "home"), and copy the
+--   rbxassetid it gives you.
+--
+-- HOW TO REGISTER THEM:
+--   Library.Icons["home"] = "rbxassetid://10723407389"
+--   Library.Icons["settings"] = "rbxassetid://10734950309"
+--   -- or register many at once:
+--   Library:SetIcons({
+--       home = "rbxassetid://10723407389",
+--       settings = "rbxassetid://10734950309",
+--   })
+--
+-- HOW TO USE THEM:
+--   local MainTab = Window:CreateTab("Main", "home")
+--
+-- If the name you pass isn't found in Library.Icons, CreateTab just
+-- falls back to treating it as plain text/emoji (e.g. "🏠"), so
+-- nothing breaks if you forget to register an icon.
+--=====================================================================
+Library.Icons = {}
+
+function Library:SetIcons(icons)
+	for name, assetId in pairs(icons or {}) do
+		self.Icons[name] = assetId
+	end
+end
 
 --=====================================================================
 -- 2. THEME
@@ -114,6 +153,161 @@ local Theme = {
 }
 
 Library.Theme = Theme -- exposed in case you want to read/tweak it from outside this file too
+
+--=====================================================================
+-- 2b. THEME PRESETS  —  swap the whole palette with one word
+-- Instead of hand-editing the Theme table above, you can just call:
+--
+--     Library:SetTheme("Sakura")
+--
+-- ...before you create your window. Case doesn't matter ("sakura",
+-- "SAKURA", "Sakura" all work), and a couple of friendly aliases are
+-- supported too (e.g. "White" == "Light").
+--
+-- Built-in presets: "Dark" (default), "Light" (alias "White"),
+-- "Sakura", "Midnight", "Ocean", "Crimson".
+--
+-- You can also add your own:
+--     Library.ThemePresets.Grape = {
+--         Background = Color3.fromRGB(26, 20, 34),
+--         Sidebar = Color3.fromRGB(21, 16, 28),
+--         Elevated = Color3.fromRGB(38, 30, 48),
+--         ElevatedHover = Color3.fromRGB(46, 37, 58),
+--         Stroke = Color3.fromRGB(56, 45, 70),
+--         Accent = Color3.fromRGB(170, 110, 255),
+--         AccentHover = Color3.fromRGB(190, 140, 255),
+--         Text = Color3.fromRGB(240, 235, 245),
+--         SubText = Color3.fromRGB(160, 150, 170),
+--     }
+--     Library:SetTheme("Grape")
+--
+-- NOTE: call SetTheme BEFORE CreateWindow. Every component reads its
+-- colors from the Theme table at the moment it's built, so the
+-- palette needs to already be swapped in before the window (and its
+-- tabs/components) get built — the same reason you'd pick a color
+-- scheme before painting a room, not after. If you want to let a
+-- player swap themes live from a dropdown, just rebuild the window
+-- (destroy the old ScreenGui, call SetTheme, then CreateWindow again).
+--=====================================================================
+Library.ThemePresets = {
+	Dark = {
+		Background = Color3.fromRGB(24, 24, 27),
+		Sidebar = Color3.fromRGB(19, 19, 21),
+		Elevated = Color3.fromRGB(32, 32, 36),
+		ElevatedHover = Color3.fromRGB(40, 40, 45),
+		Stroke = Color3.fromRGB(46, 46, 51),
+		Accent = Color3.fromRGB(114, 137, 255),
+		AccentHover = Color3.fromRGB(132, 152, 255),
+		Text = Color3.fromRGB(235, 235, 240),
+		SubText = Color3.fromRGB(150, 150, 158),
+		Success = Color3.fromRGB(90, 200, 130),
+		Danger = Color3.fromRGB(230, 90, 90),
+	},
+	Light = {
+		Background = Color3.fromRGB(246, 246, 249),
+		Sidebar = Color3.fromRGB(235, 235, 240),
+		Elevated = Color3.fromRGB(255, 255, 255),
+		ElevatedHover = Color3.fromRGB(244, 244, 248),
+		Stroke = Color3.fromRGB(220, 220, 226),
+		Accent = Color3.fromRGB(88, 101, 242),
+		AccentHover = Color3.fromRGB(109, 122, 255),
+		Text = Color3.fromRGB(24, 24, 27),
+		SubText = Color3.fromRGB(108, 108, 118),
+		Success = Color3.fromRGB(45, 160, 100),
+		Danger = Color3.fromRGB(215, 65, 65),
+	},
+	Sakura = {
+		Background = Color3.fromRGB(30, 21, 26),
+		Sidebar = Color3.fromRGB(24, 17, 21),
+		Elevated = Color3.fromRGB(41, 29, 36),
+		ElevatedHover = Color3.fromRGB(50, 36, 44),
+		Stroke = Color3.fromRGB(63, 44, 53),
+		Accent = Color3.fromRGB(245, 140, 181),
+		AccentHover = Color3.fromRGB(250, 165, 199),
+		Text = Color3.fromRGB(248, 237, 240),
+		SubText = Color3.fromRGB(186, 154, 165),
+		Success = Color3.fromRGB(130, 210, 160),
+		Danger = Color3.fromRGB(235, 100, 120),
+	},
+	Midnight = {
+		Background = Color3.fromRGB(13, 15, 24),
+		Sidebar = Color3.fromRGB(9, 11, 18),
+		Elevated = Color3.fromRGB(19, 22, 34),
+		ElevatedHover = Color3.fromRGB(25, 29, 43),
+		Stroke = Color3.fromRGB(33, 38, 54),
+		Accent = Color3.fromRGB(99, 179, 255),
+		AccentHover = Color3.fromRGB(130, 197, 255),
+		Text = Color3.fromRGB(230, 236, 245),
+		SubText = Color3.fromRGB(138, 148, 168),
+		Success = Color3.fromRGB(84, 210, 160),
+		Danger = Color3.fromRGB(235, 90, 100),
+	},
+	Ocean = {
+		Background = Color3.fromRGB(14, 24, 27),
+		Sidebar = Color3.fromRGB(10, 19, 21),
+		Elevated = Color3.fromRGB(20, 34, 38),
+		ElevatedHover = Color3.fromRGB(26, 43, 48),
+		Stroke = Color3.fromRGB(34, 54, 59),
+		Accent = Color3.fromRGB(64, 200, 197),
+		AccentHover = Color3.fromRGB(94, 216, 213),
+		Text = Color3.fromRGB(226, 245, 244),
+		SubText = Color3.fromRGB(140, 172, 172),
+		Success = Color3.fromRGB(100, 210, 150),
+		Danger = Color3.fromRGB(235, 100, 95),
+	},
+	Crimson = {
+		Background = Color3.fromRGB(24, 16, 17),
+		Sidebar = Color3.fromRGB(19, 12, 13),
+		Elevated = Color3.fromRGB(35, 22, 23),
+		ElevatedHover = Color3.fromRGB(44, 28, 29),
+		Stroke = Color3.fromRGB(58, 36, 37),
+		Accent = Color3.fromRGB(230, 75, 80),
+		AccentHover = Color3.fromRGB(240, 105, 108),
+		Text = Color3.fromRGB(245, 234, 234),
+		SubText = Color3.fromRGB(175, 145, 146),
+		Success = Color3.fromRGB(110, 200, 140),
+		Danger = Color3.fromRGB(250, 110, 110),
+	},
+}
+
+-- friendly aliases, so people don't have to remember the "canonical" name
+local ThemeAliases = {
+	white = "Light",
+	sakura = "Sakura",
+	pink = "Sakura",
+	dark = "Dark",
+	black = "Midnight",
+	blue = "Ocean",
+	red = "Crimson",
+}
+
+-- Swaps every color in the Theme table for the named preset. Not case
+-- sensitive. Returns true if a matching preset was found and applied,
+-- false otherwise (Theme is left untouched if the name isn't found).
+function Library:SetTheme(name)
+	if typeof(name) ~= "string" then return false end
+
+	local lower = name:lower()
+	local presetName = ThemeAliases[lower]
+
+	if not presetName then
+		-- fall back to matching a preset key case-insensitively
+		for key in pairs(self.ThemePresets) do
+			if key:lower() == lower then
+				presetName = key
+				break
+			end
+		end
+	end
+
+	local preset = presetName and self.ThemePresets[presetName]
+	if not preset then return false end
+
+	for field, value in pairs(preset) do
+		Theme[field] = value
+	end
+	return true
+end
 
 --=====================================================================
 -- 3. HELPER FUNCTIONS
@@ -231,15 +425,19 @@ end
 -- components will go.
 --=====================================================================
 
--- config = { Title = "text shown at the top", Subtitle = "optional smaller text under it" }
+-- config = { Title = "text shown at the top", Subtitle = "optional smaller text under it", Theme = "optional theme name, e.g. \"Sakura\"" }
 function Library:CreateWindow(config)
 	config = config or {}
-	local title = config.Title or "My Library"
+	local title = config.Title or "Aurora"
 	local subtitle = config.Subtitle
+
+	if config.Theme then
+		self:SetTheme(config.Theme)
+	end
 
 	-- ScreenGui is the container every other UI element lives inside.
 	local ScreenGui = new("ScreenGui", {
-		Name = "UILibrary",
+		Name = "Aurora",
 		ResetOnSpawn = false, -- keeps the UI alive when the player respawns
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
@@ -392,10 +590,18 @@ end
 -- library knows which tab to put the component on.
 --=====================================================================
 
--- name = text shown in the sidebar. icon = optional emoji/text shown before it.
+-- name = text shown in the sidebar.
+-- icon = optional. Either:
+--   • the name of an icon registered via Library.Icons / Library:SetIcons
+--     (renders as a real Lucide icon image), or
+--   • any other string (e.g. an emoji like "🏠"), which is just shown
+--     as text in front of the tab name, same as before.
 function Library:CreateTab(name, icon)
 	local index = #self.Tabs + 1
 	local isFirst = index == 1 -- the first tab created is automatically the one shown by default
+
+	-- Is `icon` a name we have a real Lucide icon registered for?
+	local iconAsset = icon and self.Icons and self.Icons[icon]
 
 	local TabButton = new("TextButton", {
 		Size = UDim2.new(1, 0, 0, 34),
@@ -406,11 +612,26 @@ function Library:CreateTab(name, icon)
 		Parent = self.TabList,
 	}, { corner(UDim.new(0, 6)) })
 
-	new("TextLabel", {
-		Size = UDim2.new(1, -20, 1, 0),
-		Position = UDim2.new(0, 14, 0, 0),
+	local IconImage
+	if iconAsset then
+		-- Real icon: small image on the left, label starts after it.
+		IconImage = new("ImageLabel", {
+			Size = UDim2.new(0, 16, 0, 16),
+			Position = UDim2.new(0, 14, 0.5, -8),
+			BackgroundTransparency = 1,
+			Image = iconAsset,
+			ImageColor3 = isFirst and Theme.Text or Theme.SubText,
+			Parent = TabButton,
+		})
+	end
+
+	local TabLabel = new("TextLabel", {
+		Size = iconAsset and UDim2.new(1, -40, 1, 0) or UDim2.new(1, -20, 1, 0),
+		Position = iconAsset and UDim2.new(0, 38, 0, 0) or UDim2.new(0, 14, 0, 0),
 		BackgroundTransparency = 1,
-		Text = (icon and (icon .. "  ") or "") .. name,
+		-- no registered icon, but `icon` was passed anyway -> treat it as
+		-- an emoji/text prefix, exactly like before
+		Text = (icon and not iconAsset and (icon .. "  ") or "") .. name,
 		Font = isFirst and Theme.FontBold or Theme.Font,
 		TextSize = 13,
 		TextColor3 = isFirst and Theme.Text or Theme.SubText,
@@ -446,6 +667,10 @@ function Library:CreateTab(name, icon)
 			local label = t.Button:FindFirstChildOfClass("TextLabel")
 			label.Font = active and Theme.FontBold or Theme.Font
 			tween(label, { TextColor3 = active and Theme.Text or Theme.SubText })
+			local iconImg = t.Button:FindFirstChildOfClass("ImageLabel")
+			if iconImg then
+				tween(iconImg, { ImageColor3 = active and Theme.Text or Theme.SubText })
+			end
 		end
 	end)
 
@@ -1236,7 +1461,7 @@ end
 function Library:Notify(title, text, duration)
 	duration = duration or 3
 
-	local gui = player:WaitForChild("PlayerGui"):FindFirstChild("UILibrary")
+	local gui = player:WaitForChild("PlayerGui"):FindFirstChild("Aurora")
 	if not gui then return end -- window was closed / never created, nothing to attach to
 
 	-- all notifications stack inside one shared holder frame, created
@@ -1377,16 +1602,16 @@ function Library:SaveConfig(name)
 	if writefile then
 		-- we're in an executor, so save a real file
 		local ok, err = pcall(function()
-			if not isfolder or not isfolder("UILibraryConfigs") then
-				if makefolder then makefolder("UILibraryConfigs") end
+			if not isfolder or not isfolder("AuroraConfigs") then
+				if makefolder then makefolder("AuroraConfigs") end
 			end
-			writefile("UILibraryConfigs/" .. name .. ".json", json)
+			writefile("AuroraConfigs/" .. name .. ".json", json)
 		end)
 		return ok, err
 	else
 		-- we're in Studio / a published game, so use DataStores instead
 		local DataStoreService = game:GetService("DataStoreService")
-		local store = DataStoreService:GetDataStore("UILibraryConfigs")
+		local store = DataStoreService:GetDataStore("AuroraConfigs")
 		local ok, err = pcall(function()
 			store:SetAsync(name, json)
 		end)
@@ -1402,11 +1627,11 @@ function Library:LoadConfig(name)
 	local ok, result = pcall(function()
 		local json
 
-		if readfile and isfile and isfile("UILibraryConfigs/" .. name .. ".json") then
-			json = readfile("UILibraryConfigs/" .. name .. ".json")
+		if readfile and isfile and isfile("AuroraConfigs/" .. name .. ".json") then
+			json = readfile("AuroraConfigs/" .. name .. ".json")
 		else
 			local DataStoreService = game:GetService("DataStoreService")
-			local store = DataStoreService:GetDataStore("UILibraryConfigs")
+			local store = DataStoreService:GetDataStore("AuroraConfigs")
 			json = store:GetAsync(name)
 		end
 
@@ -1448,8 +1673,8 @@ function Library:ListConfigs()
 		-- executor: read the folder directly
 		local ok, result = pcall(function()
 			local names = {}
-			if isfolder and isfolder("UILibraryConfigs") then
-				for _, path in ipairs(listfiles("UILibraryConfigs")) do
+			if isfolder and isfolder("AuroraConfigs") then
+				for _, path in ipairs(listfiles("AuroraConfigs")) do
 					local name = path:match("([^/\\]+)%.json$") -- grab "MySettings" out of ".../MySettings.json"
 					if name then
 						table.insert(names, name)
@@ -1462,7 +1687,7 @@ function Library:ListConfigs()
 	else
 		-- Studio / published game: ask the DataStore for every key we've saved
 		local DataStoreService = game:GetService("DataStoreService")
-		local store = DataStoreService:GetDataStore("UILibraryConfigs")
+		local store = DataStoreService:GetDataStore("AuroraConfigs")
 		local ok, result = pcall(function()
 			local names = {}
 			local pages = store:ListKeysAsync()
@@ -1490,14 +1715,14 @@ function Library:DeleteConfig(name)
 
 	if delfile then
 		local ok, err = pcall(function()
-			if isfile and isfile("UILibraryConfigs/" .. name .. ".json") then
-				delfile("UILibraryConfigs/" .. name .. ".json")
+			if isfile and isfile("AuroraConfigs/" .. name .. ".json") then
+				delfile("AuroraConfigs/" .. name .. ".json")
 			end
 		end)
 		return ok, err
 	else
 		local DataStoreService = game:GetService("DataStoreService")
-		local store = DataStoreService:GetDataStore("UILibraryConfigs")
+		local store = DataStoreService:GetDataStore("AuroraConfigs")
 		local ok, err = pcall(function()
 			store:RemoveAsync(name)
 		end)
@@ -1519,15 +1744,15 @@ end
 function Library:SetAutoloadConfig(name)
 	if writefile then
 		local ok, err = pcall(function()
-			if not isfolder or not isfolder("UILibraryConfigs") then
-				if makefolder then makefolder("UILibraryConfigs") end
+			if not isfolder or not isfolder("AuroraConfigs") then
+				if makefolder then makefolder("AuroraConfigs") end
 			end
-			writefile("UILibraryConfigs/autoload.txt", name)
+			writefile("AuroraConfigs/autoload.txt", name)
 		end)
 		return ok, err
 	else
 		local DataStoreService = game:GetService("DataStoreService")
-		local store = DataStoreService:GetDataStore("UILibraryConfigs")
+		local store = DataStoreService:GetDataStore("AuroraConfigs")
 		local ok, err = pcall(function()
 			store:SetAsync("__autoload__", name)
 		end)
@@ -1542,11 +1767,11 @@ function Library:LoadAutoloadConfig()
 	local ok, result = pcall(function()
 		local name
 
-		if readfile and isfile and isfile("UILibraryConfigs/autoload.txt") then
-			name = readfile("UILibraryConfigs/autoload.txt")
+		if readfile and isfile and isfile("AuroraConfigs/autoload.txt") then
+			name = readfile("AuroraConfigs/autoload.txt")
 		else
 			local DataStoreService = game:GetService("DataStoreService")
-			local store = DataStoreService:GetDataStore("UILibraryConfigs")
+			local store = DataStoreService:GetDataStore("AuroraConfigs")
 			name = store:GetAsync("__autoload__")
 		end
 
@@ -1554,6 +1779,108 @@ function Library:LoadAutoloadConfig()
 		return self:LoadConfig(name)
 	end)
 	return ok and result
+end
+
+-- Reads back whatever config name is currently marked as the autoload
+-- config WITHOUT loading it — useful for e.g. pre-selecting the right
+-- option in a dropdown, or showing "Autoload: MySettings" as a label.
+-- Returns nil if none is set.
+function Library:GetAutoloadConfig()
+	local ok, result = pcall(function()
+		if readfile and isfile and isfile("AuroraConfigs/autoload.txt") then
+			local name = readfile("AuroraConfigs/autoload.txt")
+			return name ~= "" and name or nil
+		else
+			local DataStoreService = game:GetService("DataStoreService")
+			local store = DataStoreService:GetDataStore("AuroraConfigs")
+			local name = store:GetAsync("__autoload__")
+			return name ~= "" and name or nil
+		end
+	end)
+	return ok and result or nil
+end
+
+----------------------------------------------------------------------
+-- ADD CONFIG MANAGER — a ready-made "Configs" section you can drop
+-- into any tab. Gives you, out of the box:
+--   • a dropdown listing every saved config
+--   • a textbox + "Save" button to save the CURRENT settings under a
+--     new (or existing) name
+--   • a "Load" button to apply the config picked in the dropdown
+--   • a "Set Autoload" button to mark the picked config as the one
+--     that loads automatically next time (see LoadAutoloadConfig)
+--   • a "Delete" button to remove the picked config
+--
+-- This is exactly what answers "how do I let the player pick which
+-- config auto-loads?" — wire it up like this:
+--
+--   local SettingsTab = Window:CreateTab("Settings", "settings")
+--   Window:AddConfigManager(SettingsTab)
+--
+--   -- then, near the very top of your script, BEFORE you create any
+--   -- flagged components (or right after, then call LoadAutoloadConfig
+--   -- again) so saved values apply on join:
+--   Window:LoadAutoloadConfig()
+--
+-- Everything here just calls the SaveConfig/LoadConfig/ListConfigs/
+-- SetAutoloadConfig/DeleteConfig functions above — this is purely a
+-- convenience wrapper, you can always build your own UI against those
+-- instead if you want something more custom.
+----------------------------------------------------------------------
+function Library:AddConfigManager(tab)
+	local Window = self
+
+	Window:AddSection(tab, "Configs")
+
+	local configs = Window:ListConfigs()
+	local autoloadName = Window:GetAutoloadConfig()
+
+	local ConfigDropdown = Window:AddDropdown(
+		tab,
+		"Saved Configs",
+		configs,
+		autoloadName or configs[1],
+		function() end
+	)
+
+	local NameBox = Window:AddTextbox(tab, "Config name to save as...", function() end)
+
+	local function refreshList()
+		ConfigDropdown.Refresh(Window:ListConfigs())
+	end
+
+	Window:AddButton(tab, "Save Config", function()
+		local name = NameBox.Text
+		if not name or name == "" then
+			Window:Notify("Config", "Type a name in the box above first.", 3)
+			return
+		end
+		local ok = Window:SaveConfig(name)
+		Window:Notify("Config", ok and ("Saved \"" .. name .. "\"") or "Failed to save config.", 3)
+		refreshList()
+	end)
+
+	Window:AddButton(tab, "Load Selected Config", function()
+		local name = ConfigDropdown.Get()
+		if not name then return end
+		local ok = Window:LoadConfig(name)
+		Window:Notify("Config", ok and ("Loaded \"" .. name .. "\"") or "Failed to load config.", 3)
+	end)
+
+	Window:AddButton(tab, "Set Selected as Autoload", function()
+		local name = ConfigDropdown.Get()
+		if not name then return end
+		local ok = Window:SetAutoloadConfig(name)
+		Window:Notify("Config", ok and ("\"" .. name .. "\" will now load automatically") or "Failed to set autoload.", 3)
+	end)
+
+	Window:AddButton(tab, "Delete Selected Config", function()
+		local name = ConfigDropdown.Get()
+		if not name then return end
+		Window:DeleteConfig(name)
+		Window:Notify("Config", "Deleted \"" .. name .. "\"", 3)
+		refreshList()
+	end)
 end
 
 -- This is the last line: it makes everything above accessible to
