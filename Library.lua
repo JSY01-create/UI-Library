@@ -268,6 +268,17 @@ Library.ThemePresets = {
 		Success = Color3.fromRGB(110, 200, 140),
 		Danger = Color3.fromRGB(250, 110, 110),
 	},
+	Grape = {
+    Background = Color3.fromRGB(26, 20, 34),
+    Sidebar = Color3.fromRGB(21, 16, 28),
+    Elevated = Color3.fromRGB(38, 30, 48),
+    ElevatedHover = Color3.fromRGB(46, 37, 58),
+    Stroke = Color3.fromRGB(56, 45, 70),
+    Accent = Color3.fromRGB(170, 110, 255),
+    AccentHover = Color3.fromRGB(190, 140, 255),
+    Text = Color3.fromRGB(240, 235, 245),
+    SubText = Color3.fromRGB(160, 150, 170),
+  },
 }
 
 -- friendly aliases, so people don't have to remember the "canonical" name
