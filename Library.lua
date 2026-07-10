@@ -873,6 +873,11 @@ end
 ----------------------------------------------------------------------
 -- DROPDOWN — pick one option from a list. Click to expand/collapse.
 -- Window:AddDropdown(Tab, "Theme", {"Dark", "Light"}, "Dark", function(choice) end, "SelectedTheme")
+--
+-- The returned api also has a .Refresh(newOptionsTable) method, which
+-- rebuilds the option list on the fly. This is what you use for a
+-- "pick a config" dropdown — call Refresh(Window:ListConfigs()) any
+-- time a config is saved/deleted so the list stays up to date.
 ----------------------------------------------------------------------
 function Library:AddDropdown(tab, text, options, default, callback, flag)
 	callback = callback or function() end
@@ -901,7 +906,7 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 		Size = UDim2.new(0.5, -14, 0, 30),
 		Position = UDim2.new(0.5, 0, 0, 7),
 		BackgroundColor3 = Theme.Background,
-		Text = tostring(selected) .. "  ▾",
+		Text = (selected and tostring(selected) or "None") .. "  ▾",
 		Font = Theme.Font,
 		TextSize = 13,
 		TextColor3 = Theme.SubText,
@@ -917,34 +922,60 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 		Parent = card,
 	}, { corner(UDim.new(0, 6)), listLayout(Enum.FillDirection.Vertical, 0) })
 
-	-- create one button per option
-	for i, option in ipairs(options) do
-		local optBtn = new("TextButton", {
-			Size = UDim2.new(1, 0, 0, 30),
-			BackgroundColor3 = Theme.Background,
-			Text = tostring(option),
-			Font = Theme.Font,
-			TextSize = 13,
-			TextColor3 = Theme.SubText,
-			AutoButtonColor = false,
-			LayoutOrder = i,
-			Parent = OptionsList,
-		})
-		optBtn.MouseEnter:Connect(function()
-			tween(optBtn, { BackgroundColor3 = Theme.ElevatedHover })
-		end)
-		optBtn.MouseLeave:Connect(function()
-			tween(optBtn, { BackgroundColor3 = Theme.Background })
-		end)
-		optBtn.MouseButton1Click:Connect(function()
-			selected = option
-			Selected.Text = tostring(option) .. "  ▾"
-			open = false
-			OptionsList.Visible = false
-			tween(card, { Size = UDim2.new(1, 0, 0, 44) }) -- shrink back down
-			callback(option)
-		end)
+	-- Runs whenever an option is clicked, OR when you call api.Set(...)
+	-- from code — both should close the list and fire the callback the
+	-- same way, so this is shared between them.
+	local function selectOption(option)
+		selected = option
+		Selected.Text = tostring(option) .. "  ▾"
+		open = false
+		OptionsList.Visible = false
+		tween(card, { Size = UDim2.new(1, 0, 0, 44) }) -- shrink back down
+		callback(option)
 	end
+
+	-- Wipes out the current option buttons and builds fresh ones from
+	-- `newOptions`. Used both the first time (below) and any time you
+	-- call api.Refresh(...) later, e.g. after saving a new config.
+	local function rebuildOptions(newOptions)
+		options = newOptions or {}
+
+		for _, child in ipairs(OptionsList:GetChildren()) do
+			if child:IsA("TextButton") then
+				child:Destroy()
+			end
+		end
+
+		OptionsList.Size = UDim2.new(1, -28, 0, #options * 30)
+		if open then
+			tween(card, { Size = UDim2.new(1, 0, 0, 48 + #options * 30 + 8) })
+		end
+
+		for i, option in ipairs(options) do
+			local optBtn = new("TextButton", {
+				Size = UDim2.new(1, 0, 0, 30),
+				BackgroundColor3 = Theme.Background,
+				Text = tostring(option),
+				Font = Theme.Font,
+				TextSize = 13,
+				TextColor3 = Theme.SubText,
+				AutoButtonColor = false,
+				LayoutOrder = i,
+				Parent = OptionsList,
+			})
+			optBtn.MouseEnter:Connect(function()
+				tween(optBtn, { BackgroundColor3 = Theme.ElevatedHover })
+			end)
+			optBtn.MouseLeave:Connect(function()
+				tween(optBtn, { BackgroundColor3 = Theme.Background })
+			end)
+			optBtn.MouseButton1Click:Connect(function()
+				selectOption(option)
+			end)
+		end
+	end
+
+	rebuildOptions(options) -- build the initial list
 
 	-- clicking the "Selected" button grows/shrinks the card to reveal the list
 	Selected.MouseButton1Click:Connect(function()
@@ -959,6 +990,7 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 			Selected.Text = tostring(v) .. "  ▾"
 		end,
 		Get = function() return selected end,
+		Refresh = function(newOptions) rebuildOptions(newOptions) end,
 	}
 	if flag then Library.Flags[flag] = api end
 	return api
@@ -1383,6 +1415,143 @@ function Library:LoadConfig(name)
 		local data = HttpService:JSONDecode(json)
 		applyFlags(data)
 		return true
+	end)
+	return ok and result
+end
+
+----------------------------------------------------------------------
+-- CREATE CONFIG — this is really just SaveConfig with a clearer name
+-- for when you're making a brand-new config for the first time (e.g.
+-- from a "New Config" textbox + button in your UI), rather than
+-- re-saving over an existing one. Both do exactly the same thing.
+-- Window:CreateConfig("MySettings")
+----------------------------------------------------------------------
+function Library:CreateConfig(name)
+	return self:SaveConfig(name)
+end
+
+----------------------------------------------------------------------
+-- LIST CONFIGS — returns an array of every saved config's name (no
+-- ".json", just the plain name you'd pass into LoadConfig/DeleteConfig).
+-- This is what you feed into a Dropdown so players can pick a config:
+--
+--   local ConfigDropdown = Window:AddDropdown(Tab, "Config", Window:ListConfigs(), nil, function(name)
+--       Window:LoadConfig(name)
+--   end)
+--
+-- Since the list can change (new configs saved, old ones deleted)
+-- after the dropdown is created, call ConfigDropdown.Refresh(Window:ListConfigs())
+-- any time you want it to catch up — e.g. right after CreateConfig/DeleteConfig.
+----------------------------------------------------------------------
+function Library:ListConfigs()
+	if listfiles then
+		-- executor: read the folder directly
+		local ok, result = pcall(function()
+			local names = {}
+			if isfolder and isfolder("UILibraryConfigs") then
+				for _, path in ipairs(listfiles("UILibraryConfigs")) do
+					local name = path:match("([^/\\]+)%.json$") -- grab "MySettings" out of ".../MySettings.json"
+					if name then
+						table.insert(names, name)
+					end
+				end
+			end
+			return names
+		end)
+		return ok and result or {}
+	else
+		-- Studio / published game: ask the DataStore for every key we've saved
+		local DataStoreService = game:GetService("DataStoreService")
+		local store = DataStoreService:GetDataStore("UILibraryConfigs")
+		local ok, result = pcall(function()
+			local names = {}
+			local pages = store:ListKeysAsync()
+			while true do
+				for _, item in ipairs(pages:GetCurrentPage()) do
+					if item.KeyName ~= "__autoload__" then -- skip our internal autoload marker, see below
+						table.insert(names, item.KeyName)
+					end
+				end
+				if pages.IsFinished then break end
+				pages:AdvanceToNextPageAsync()
+			end
+			return names
+		end)
+		return ok and result or {}
+	end
+end
+
+----------------------------------------------------------------------
+-- DELETE CONFIG — removes a saved config permanently.
+-- Window:DeleteConfig("MySettings")
+----------------------------------------------------------------------
+function Library:DeleteConfig(name)
+	name = name or "default"
+
+	if delfile then
+		local ok, err = pcall(function()
+			if isfile and isfile("UILibraryConfigs/" .. name .. ".json") then
+				delfile("UILibraryConfigs/" .. name .. ".json")
+			end
+		end)
+		return ok, err
+	else
+		local DataStoreService = game:GetService("DataStoreService")
+		local store = DataStoreService:GetDataStore("UILibraryConfigs")
+		local ok, err = pcall(function()
+			store:RemoveAsync(name)
+		end)
+		return ok, err
+	end
+end
+
+----------------------------------------------------------------------
+-- AUTOLOAD — mark one config as the one that should load automatically
+-- next time. Call SetAutoloadConfig once (e.g. from an "Autoload"
+-- toggle/button in your settings tab), then call LoadAutoloadConfig()
+-- near the top of your script, right after CreateWindow, so it applies
+-- before the player starts using the UI.
+--
+--   Window:SetAutoloadConfig("MySettings")
+--   ...
+--   Window:LoadAutoloadConfig() -- put this early in your script
+----------------------------------------------------------------------
+function Library:SetAutoloadConfig(name)
+	if writefile then
+		local ok, err = pcall(function()
+			if not isfolder or not isfolder("UILibraryConfigs") then
+				if makefolder then makefolder("UILibraryConfigs") end
+			end
+			writefile("UILibraryConfigs/autoload.txt", name)
+		end)
+		return ok, err
+	else
+		local DataStoreService = game:GetService("DataStoreService")
+		local store = DataStoreService:GetDataStore("UILibraryConfigs")
+		local ok, err = pcall(function()
+			store:SetAsync("__autoload__", name)
+		end)
+		return ok, err
+	end
+end
+
+-- Reads back whatever config name was marked with SetAutoloadConfig
+-- and loads it. Returns false (without erroring) if nothing was ever
+-- set, so it's always safe to call this even on a fresh install.
+function Library:LoadAutoloadConfig()
+	local ok, result = pcall(function()
+		local name
+
+		if readfile and isfile and isfile("UILibraryConfigs/autoload.txt") then
+			name = readfile("UILibraryConfigs/autoload.txt")
+		else
+			local DataStoreService = game:GetService("DataStoreService")
+			local store = DataStoreService:GetDataStore("UILibraryConfigs")
+			name = store:GetAsync("__autoload__")
+		end
+
+		if not name or name == "" then return false end
+		return self:LoadConfig(name)
 	end)
 	return ok and result
 end
