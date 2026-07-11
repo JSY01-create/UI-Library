@@ -64,6 +64,7 @@ local TweenService = game:GetService("TweenService")       -- makes things anima
 local Players = game:GetService("Players")                 -- lets us find the local player
 local HttpService = game:GetService("HttpService")         -- converts data to/from JSON text
 local UserInputService = game:GetService("UserInputService") -- detects mouse/keyboard input
+local RunService = game:GetService("RunService")           -- lets us wait a frame before reading layout sizes
 
 local player = Players.LocalPlayer
 
@@ -181,8 +182,7 @@ Library.Theme = Theme -- exposed in case you want to read/tweak it from outside 
 -- supported too (e.g. "White" == "Light").
 --
 -- Built-in presets: "Dark" (default), "Light" (alias "White"),
--- "Sakura", "Midnight", "Ocean", "Crimson", "Grape", "Forest", "Amber",
--- "Violet".
+-- "Sakura", "Midnight", "Ocean", "Crimson", "Grape".
 --
 -- You can also add your own the same way "Grape" is defined below:
 --     Library.ThemePresets.Forest = {
@@ -300,45 +300,6 @@ Library.ThemePresets = {
 		Success = Color3.fromRGB(120, 200, 150),
 		Danger = Color3.fromRGB(235, 95, 120),
 	},
-	Forest = {
-		Background = Color3.fromRGB(15, 20, 16),
-		Sidebar = Color3.fromRGB(9, 13, 10),
-		Elevated = Color3.fromRGB(24, 33, 26),
-		ElevatedHover = Color3.fromRGB(31, 42, 34),
-		Stroke = Color3.fromRGB(40, 54, 44),
-		Accent = Color3.fromRGB(96, 200, 120),
-		AccentHover = Color3.fromRGB(120, 215, 140),
-		Text = Color3.fromRGB(230, 240, 232),
-		SubText = Color3.fromRGB(145, 168, 150),
-		Success = Color3.fromRGB(130, 220, 150),
-		Danger = Color3.fromRGB(230, 90, 90),
-	},
-	Amber = {
-		Background = Color3.fromRGB(22, 18, 13),
-		Sidebar = Color3.fromRGB(14, 11, 8),
-		Elevated = Color3.fromRGB(38, 30, 20),
-		ElevatedHover = Color3.fromRGB(49, 39, 26),
-		Stroke = Color3.fromRGB(62, 49, 33),
-		Accent = Color3.fromRGB(245, 175, 80),
-		AccentHover = Color3.fromRGB(250, 195, 110),
-		Text = Color3.fromRGB(245, 236, 222),
-		SubText = Color3.fromRGB(180, 160, 135),
-		Success = Color3.fromRGB(140, 200, 110),
-		Danger = Color3.fromRGB(230, 90, 90),
-	},
-	Violet = {
-		Background = Color3.fromRGB(20, 16, 26),
-		Sidebar = Color3.fromRGB(12, 10, 16),
-		Elevated = Color3.fromRGB(33, 26, 42),
-		ElevatedHover = Color3.fromRGB(42, 34, 54),
-		Stroke = Color3.fromRGB(54, 44, 68),
-		Accent = Color3.fromRGB(150, 110, 255),
-		AccentHover = Color3.fromRGB(172, 138, 255),
-		Text = Color3.fromRGB(238, 232, 245),
-		SubText = Color3.fromRGB(160, 150, 175),
-		Success = Color3.fromRGB(110, 205, 150),
-		Danger = Color3.fromRGB(235, 95, 110),
-	},
 }
 
 -- friendly aliases, so people don't have to remember the "canonical" name
@@ -350,10 +311,7 @@ local ThemeAliases = {
 	black = "Midnight",
 	blue = "Ocean",
 	red = "Crimson",
-	purple = "Grape", -- "Violet" is close in hue too, but Grape had the alias first
-	green = "Forest",
-	gold = "Amber",
-	orange = "Amber",
+	purple = "Grape",
 }
 
 -- Swaps every color in the Theme table for the named preset. Not case
@@ -807,14 +765,25 @@ function Library:CreateWindow(config)
 	-- whichever tab is actually showing instead of one fixed height for
 	-- every tab regardless of how much is in it.
 	--
+	-- IMPORTANT: this reads `pageLayout.AbsoluteContentSize`, NOT
+	-- `page.CanvasSize`. A ScrollingFrame's CanvasSize (even with
+	-- AutomaticCanvasSize on) is derived FROM the UIListLayout's
+	-- AbsoluteContentSize one step later — so reading CanvasSize right
+	-- after a page becomes Visible can catch a stale/zero value from
+	-- while it was hidden (layout doesn't get recomputed for invisible
+	-- objects), and the window would tween down to MIN_WINDOW_HEIGHT
+	-- before snapping back up a moment later. Reading AbsoluteContentSize
+	-- directly off the layout object skips that extra lag entirely.
+	--
 	-- This is attached directly onto the Window instance below (instead
 	-- of being a normal `function Library:Something()` method) because
 	-- it needs closure access to THIS window's own MainFrame/
 	-- expandedHeight/minimized/windowWidth — those are private locals up
 	-- above, not fields stored on `self`.
-	local function resizeToFitContent(page)
+	local PAGE_PADDING_Y = 24 -- matches the top(10) + bottom(14) UIPadding every page uses, see CreateTab
+	local function resizeToFitContent(page, pageLayout)
 		if minimized or not page.Visible then return end
-		local desired = math.clamp(46 + page.CanvasSize.Y.Offset, MIN_WINDOW_HEIGHT, maxWindowHeight())
+		local desired = math.clamp(46 + PAGE_PADDING_Y + pageLayout.AbsoluteContentSize.Y, MIN_WINDOW_HEIGHT, maxWindowHeight())
 		expandedHeight = desired
 		tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, desired) }, 0.15)
 	end
@@ -917,23 +886,33 @@ function Library:CreateTab(name, icon)
 		AutomaticCanvasSize = Enum.AutomaticSize.Y, -- grows automatically as you add components
 		Visible = isFirst,
 		Parent = self.ContentArea,
-	}, {
-		listLayout(Enum.FillDirection.Vertical, Theme.ItemGap),
-		-- top/left: breathing room so cards aren't flush against the
-		-- window's edge — these used to both be 0, which is what caused
-		-- content to look clipped/cut off on the left. right: clears the
-		-- scrollbar so cards don't butt up against it. bottom: without
-		-- this the last card sits flush against the very bottom edge of
-		-- the window, which reads as it being cut off too.
-		padding(0, 10, 12, 14, 14),
 	})
 
-	-- Every time a component gets added (or removed) from this page, its
-	-- CanvasSize changes — use that as the signal to re-fit the window's
+	-- Built separately (rather than inline in Page's children list above)
+	-- so we can hang onto `PageLayout` directly — resizeToFitContent
+	-- reads PageLayout.AbsoluteContentSize instead of Page.CanvasSize,
+	-- since the layout's own size updates immediately while CanvasSize
+	-- trails a step behind it. See resizeToFitContent's comment above.
+	local PageLayout = listLayout(Enum.FillDirection.Vertical, Theme.ItemGap)
+	PageLayout.Parent = Page
+
+	-- top/left: breathing room so cards aren't flush against the
+	-- window's edge — these used to both be 0, which is what caused
+	-- content to look clipped/cut off on the left. right: clears the
+	-- scrollbar so cards don't butt up against it. bottom: without
+	-- this the last card sits flush against the very bottom edge of
+	-- the window, which reads as it being cut off too.
+	local PagePadding = padding(0, 10, 12, 14, 14)
+	PagePadding.Parent = Page
+
+	-- Every time this page's content changes size, re-fit the window's
 	-- height to match, so a short tab doesn't render at the same height
-	-- as a long one.
-	Page:GetPropertyChangedSignal("CanvasSize"):Connect(function()
-		self.ResizeToFitContent(Page)
+	-- as a long one. AbsoluteContentSize is the layout engine's own,
+	-- immediately-updated number — see resizeToFitContent for why we
+	-- deliberately don't use Page:GetPropertyChangedSignal("CanvasSize")
+	-- here instead.
+	PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		self.ResizeToFitContent(Page, PageLayout)
 	end)
 
 	local tabData = { Button = TabButton, Page = Page, Name = name }
@@ -954,7 +933,20 @@ function Library:CreateTab(name, icon)
 				tween(iconImg, { ImageColor3 = active and Theme.Text or Theme.SubText })
 			end
 		end
-		self.ResizeToFitContent(Page) -- this tab's content is very likely a different height than the one just hidden
+		self.ResizeToFitContent(Page, PageLayout) -- immediate best-effort resize
+
+		-- ...then correct it a frame later. This page may have just gone
+		-- from hidden to Visible, and Roblox doesn't recompute layout for
+		-- hidden objects — so AbsoluteContentSize can still be stale at
+		-- the exact instant Visible flips true. Waiting one Heartbeat
+		-- guarantees the layout engine has actually caught up before we
+		-- trust the number, which is what was causing the window to
+		-- visibly shrink-then-snap-back (or just stay wrongly shrunk) on
+		-- every tab click.
+		task.defer(function()
+			RunService.Heartbeat:Wait()
+			self.ResizeToFitContent(Page, PageLayout)
+		end)
 	end)
 
 	-- Small hover highlight for inactive tabs.
