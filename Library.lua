@@ -764,7 +764,14 @@ function Library:CreateTab(name, icon)
 		Parent = self.ContentArea,
 	}, {
 		listLayout(Enum.FillDirection.Vertical, Theme.ItemGap),
-		padding(0, 0, 6, 0, 0), -- small right-side gap so cards don't butt up against the scrollbar
+		-- small gap on every side: without this, cards sit flush against
+		-- the ScrollingFrame's own edges. Since ScrollingFrame always
+		-- clips its contents, and each card's UIStroke is drawn straddling
+		-- the card's edge (half the outline sits just outside the card),
+		-- that outer half of the outline/rounded corner on the top+left
+		-- was getting sliced off by the clip. A few pixels of breathing
+		-- room on all sides keeps every corner intact.
+		padding(0, 3, 9, 3, 3), -- top, right (extra for scrollbar), bottom, left
 	})
 
 	local tabData = { Button = TabButton, Page = Page, Name = name }
