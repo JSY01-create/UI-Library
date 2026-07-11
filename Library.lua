@@ -67,10 +67,26 @@ local UserInputService = game:GetService("UserInputService") -- detects mouse/ke
 
 local player = Players.LocalPlayer
 
+-- Most executors expose a `gethui()` global that returns a dedicated,
+-- more hidden container to parent GUIs into (instead of PlayerGui) —
+-- it survives things like character resets more reliably and is the
+-- de-facto standard place UI libraries are expected to parent into.
+-- Not every environment has it (plain Roblox Studio doesn't), so we
+-- fall back to PlayerGui when it's missing instead of erroring.
+local function getGuiParent()
+	if typeof(gethui) == "function" then
+		local ok, result = pcall(gethui)
+		if ok and result then
+			return result
+		end
+	end
+	return player:WaitForChild("PlayerGui")
+end
+
 -- If you run this script twice (e.g. from the Studio command bar while
 -- testing), this deletes the old UI first so you don't end up with two
 -- windows stacked on top of each other.
-local existingGui = player:WaitForChild("PlayerGui"):FindFirstChild("Aurora")
+local existingGui = getGuiParent():FindFirstChild("Aurora")
 if existingGui then
 	existingGui:Destroy()
 end
@@ -165,21 +181,23 @@ Library.Theme = Theme -- exposed in case you want to read/tweak it from outside 
 -- supported too (e.g. "White" == "Light").
 --
 -- Built-in presets: "Dark" (default), "Light" (alias "White"),
--- "Sakura", "Midnight", "Ocean", "Crimson".
+-- "Sakura", "Midnight", "Ocean", "Crimson", "Grape".
 --
--- You can also add your own:
---     Library.ThemePresets.Grape = {
---         Background = Color3.fromRGB(26, 20, 34),
---         Sidebar = Color3.fromRGB(21, 16, 28),
---         Elevated = Color3.fromRGB(38, 30, 48),
---         ElevatedHover = Color3.fromRGB(46, 37, 58),
---         Stroke = Color3.fromRGB(56, 45, 70),
---         Accent = Color3.fromRGB(170, 110, 255),
---         AccentHover = Color3.fromRGB(190, 140, 255),
---         Text = Color3.fromRGB(240, 235, 245),
---         SubText = Color3.fromRGB(160, 150, 170),
+-- You can also add your own the same way "Grape" is defined below:
+--     Library.ThemePresets.Forest = {
+--         Background = Color3.fromRGB(16, 22, 18),
+--         Sidebar = Color3.fromRGB(10, 15, 12),
+--         Elevated = Color3.fromRGB(26, 36, 29),
+--         ElevatedHover = Color3.fromRGB(34, 46, 38),
+--         Stroke = Color3.fromRGB(45, 60, 49),
+--         Accent = Color3.fromRGB(96, 200, 120),
+--         AccentHover = Color3.fromRGB(120, 216, 142),
+--         Text = Color3.fromRGB(232, 242, 234),
+--         SubText = Color3.fromRGB(150, 172, 155),
+--         Success = Color3.fromRGB(110, 210, 140),
+--         Danger = Color3.fromRGB(230, 100, 95),
 --     }
---     Library:SetTheme("Grape")
+--     Library:SetTheme("Forest")
 --
 -- NOTE: call SetTheme BEFORE CreateWindow. Every component reads its
 -- colors from the Theme table at the moment it's built, so the
@@ -268,6 +286,19 @@ Library.ThemePresets = {
 		Success = Color3.fromRGB(110, 200, 140),
 		Danger = Color3.fromRGB(250, 110, 110),
 	},
+	Grape = {
+		Background = Color3.fromRGB(26, 20, 34),
+		Sidebar = Color3.fromRGB(21, 16, 28),
+		Elevated = Color3.fromRGB(38, 30, 48),
+		ElevatedHover = Color3.fromRGB(46, 37, 58),
+		Stroke = Color3.fromRGB(56, 45, 70),
+		Accent = Color3.fromRGB(170, 110, 255),
+		AccentHover = Color3.fromRGB(190, 140, 255),
+		Text = Color3.fromRGB(240, 235, 245),
+		SubText = Color3.fromRGB(160, 150, 170),
+		Success = Color3.fromRGB(120, 200, 150),
+		Danger = Color3.fromRGB(235, 95, 120),
+	},
 }
 
 -- friendly aliases, so people don't have to remember the "canonical" name
@@ -279,6 +310,7 @@ local ThemeAliases = {
 	black = "Midnight",
 	blue = "Ocean",
 	red = "Crimson",
+	purple = "Grape",
 }
 
 -- Swaps every color in the Theme table for the named preset. Not case
@@ -477,7 +509,7 @@ function Library:CreateWindow(config)
 		Name = "Aurora",
 		ResetOnSpawn = false, -- keeps the UI alive when the player respawns
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		Parent = player:WaitForChild("PlayerGui"),
+		Parent = getGuiParent(),
 	})
 
 	-- Figure out how much screen we've actually got. On a phone that's a
@@ -487,7 +519,7 @@ function Library:CreateWindow(config)
 	local camera = workspace.CurrentCamera
 	local viewport = (camera and camera.ViewportSize) or Vector2.new(1280, 720)
 	local windowWidth = math.clamp(viewport.X - 24, 300, 640)
-	local windowHeight = math.clamp(viewport.Y - 120, 340, 420)
+	local windowHeight = math.clamp(viewport.Y - 100, 380, 560)
 
 	-- The main box itself.
 	local MainFrame = new("Frame", {
@@ -517,7 +549,7 @@ function Library:CreateWindow(config)
 		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 			local vp = camera.ViewportSize
 			windowWidth = math.clamp(vp.X - 24, 300, 640)
-			expandedHeight = math.clamp(vp.Y - 120, 340, 420)
+			expandedHeight = math.clamp(vp.Y - 100, 380, 560)
 			local targetHeight = minimized and 46 or expandedHeight
 			MainFrame.Size = UDim2.new(0, windowWidth, 0, targetHeight)
 			MainFrame.Position = UDim2.new(0.5, -windowWidth / 2, 0.5, -targetHeight / 2)
@@ -801,7 +833,10 @@ function Library:CreateTab(name, icon)
 		Parent = self.ContentArea,
 	}, {
 		listLayout(Enum.FillDirection.Vertical, Theme.ItemGap),
-		padding(0, 0, 6, 0, 0), -- small right-side gap so cards don't butt up against the scrollbar
+		-- right: clears the scrollbar so cards don't butt up against it.
+		-- bottom: without this the last card sits flush against the very
+		-- bottom edge of the window, which reads as it being cut off.
+		padding(0, 0, 12, 14, 0),
 	})
 
 	local tabData = { Button = TabButton, Page = Page, Name = name }
@@ -927,35 +962,53 @@ function Library:AddDivider(tab)
 end
 
 ----------------------------------------------------------------------
--- BUTTON — a clickable card that runs `callback` when pressed.
+-- BUTTON — a label on the left, and a small clickable button on the
+-- right that runs `callback` when pressed — same left-label/
+-- right-control layout as Toggle and Checkbox use.
 -- Window:AddButton(Tab, "Click me", function() print("clicked") end)
 ----------------------------------------------------------------------
 function Library:AddButton(tab, text, callback)
 	callback = callback or function() end -- if you forget to pass a callback, this just does nothing instead of erroring
 	local card = baseCard(tab, 38)
 
-	local btn = new("TextButton", {
-		Size = UDim2.new(1, 0, 1, 0),
+	new("TextLabel", {
+		Size = UDim2.new(1, -110, 1, 0),
+		Position = UDim2.new(0, 14, 0, 0),
 		BackgroundTransparency = 1,
 		Text = text,
 		Font = Theme.Font,
 		TextSize = 14,
 		TextColor3 = Theme.Text,
-		AutoButtonColor = false,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = card,
 	})
 
-	-- lighten the card slightly on hover, and flash the accent color on click
+	-- the actual clickable control, right-aligned with the same 14px
+	-- margin the Toggle switch / Slider value / Keybind box all use
+	local btn = new("TextButton", {
+		Size = UDim2.new(0, 84, 0, 28),
+		Position = UDim2.new(1, -98, 0.5, -14),
+		BackgroundColor3 = Theme.ElevatedHover,
+		Text = "Run",
+		Font = Theme.FontBold,
+		TextSize = 13,
+		TextColor3 = Theme.Text,
+		AutoButtonColor = false,
+		Parent = card,
+	}, { corner(UDim.new(0, 6)), stroke() })
+
+	-- lighten on hover, flash the accent color on click — same feel as
+	-- before, just scoped to the small button instead of the whole card
 	btn.MouseEnter:Connect(function()
-		tween(card, { BackgroundColor3 = Theme.ElevatedHover })
+		tween(btn, { BackgroundColor3 = Theme.Accent })
 	end)
 	btn.MouseLeave:Connect(function()
-		tween(card, { BackgroundColor3 = Theme.Elevated })
+		tween(btn, { BackgroundColor3 = Theme.ElevatedHover })
 	end)
 	btn.MouseButton1Click:Connect(function()
-		tween(card, { BackgroundColor3 = Theme.Accent }, 0.08)
+		tween(btn, { BackgroundColor3 = Theme.AccentHover }, 0.08)
 		task.wait(0.08)
-		tween(card, { BackgroundColor3 = Theme.ElevatedHover }, 0.12)
+		tween(btn, { BackgroundColor3 = Theme.ElevatedHover }, 0.12)
 		callback()
 	end)
 
@@ -1824,7 +1877,7 @@ end
 function Library:Notify(title, text, duration)
 	duration = duration or 3
 
-	local gui = player:WaitForChild("PlayerGui"):FindFirstChild("Aurora")
+	local gui = getGuiParent():FindFirstChild("Aurora")
 	if not gui then return end -- window was closed / never created, nothing to attach to
 
 	-- all notifications stack inside one shared holder frame, created
