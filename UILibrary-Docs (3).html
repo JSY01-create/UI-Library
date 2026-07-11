@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurora UI — Docs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/black-metal-khold.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/lua.min.js"></script>
+<style>
+  :root{
+    --bg:#111113;
+    --sidebar:#0c0c0e;
+    --panel:#18181b;
+    --elevated:#202024;
+    --elevated-hover:#26262b;
+    --stroke:#2b2b30;
+    --accent:#7289ff;
+    --accent-hover:#8498ff;
+    --accent-dim:#7289ff33;
+    --text:#ebebf0;
+    --subtext:#96969e;
+    --faint:#5c5c64;
+    --success:#5ac882;
+    --danger:#e65a5a;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    line-height:1.6;
+  }
+  ::selection{ background:var(--accent-dim); }
+
+  h1,h2,h3,h4{ font-family:'Space Grotesk',sans-serif; margin:0; }
+
+  a{ color:inherit; }
+
+  code, pre, .mono{ font-family:'JetBrains Mono', monospace; }
+
+  /* ---------- layout ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns:260px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    background:var(--sidebar);
+    border-right:1px solid var(--stroke);
+    padding:22px 16px 40px;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:4px 8px 20px;
+    border-bottom:1px solid var(--stroke);
+    margin-bottom:16px;
+  }
+  .brand-mark{
+    width:30px;height:30px;border-radius:8px;
+    background:linear-gradient(135deg, var(--accent), #4c5fd6);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-weight:700;font-size:14px;color:#0c0c0e;
+    flex-shrink:0;
+  }
+  .brand-text{ font-weight:700; font-size:15px; letter-spacing:.2px; }
+  .brand-sub{ font-size:11px; color:var(--subtext); font-family:'JetBrains Mono'; }
+
+  .search-box{
+    display:flex; align-items:center; gap:8px;
+    background:var(--panel);
+    border:1px solid var(--stroke);
+    border-radius:8px;
+    padding:8px 10px;
+    margin-bottom:18px;
+  }
+  .search-box svg{ flex-shrink:0; opacity:.5; }
+  .search-box input{
+    background:none; border:none; outline:none; color:var(--text);
+    font-family:'Inter'; font-size:13px; width:100%;
+  }
+  .search-box input::placeholder{ color:var(--faint); }
+
+  .nav-group{ margin-bottom:6px; }
+  .nav-group-label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:1.2px;
+    color:var(--faint); font-weight:600; padding:14px 8px 6px;
+  }
+  .nav-link{
+    display:flex; align-items:center; gap:9px;
+    padding:7px 8px; border-radius:7px;
+    font-size:13.5px; color:var(--subtext);
+    text-decoration:none; cursor:pointer;
+    transition:background .12s, color .12s;
+  }
+  .nav-link:hover{ background:var(--panel); color:var(--text); }
+  .nav-link.active{ background:var(--accent-dim); color:var(--text); }
+  .nav-link .dot{
+    width:5px;height:5px;border-radius:50%;background:var(--faint);flex-shrink:0;
+  }
+  .nav-link.active .dot{ background:var(--accent); }
+
+  /* ---------- main ---------- */
+  .main{ padding:56px 48px 120px; max-width:920px; }
+
+  .hero{ margin-bottom:56px; }
+  .hero-eyebrow{
+    display:inline-flex; align-items:center; gap:7px;
+    font-family:'JetBrains Mono'; font-size:11.5px; color:var(--accent);
+    background:var(--accent-dim); border:1px solid #7289ff44;
+    padding:5px 10px; border-radius:20px; margin-bottom:18px;
+  }
+  .hero h1{ font-size:38px; font-weight:700; letter-spacing:-.5px; margin-bottom:14px; }
+  .hero p{ color:var(--subtext); font-size:15.5px; max-width:620px; margin-bottom:26px; }
+  .hero-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .btn{
+    font-family:'Inter'; font-weight:600; font-size:13.5px;
+    padding:10px 16px; border-radius:8px; border:1px solid var(--stroke);
+    background:var(--panel); color:var(--text); cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px;
+    transition:border-color .12s, background .12s, transform .08s;
+    text-decoration:none;
+  }
+  .btn:hover{ border-color:var(--accent); background:var(--elevated); }
+  .btn:active{ transform:scale(.97); }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#0c0c10; }
+  .btn.primary:hover{ background:var(--accent-hover); border-color:var(--accent-hover); }
+
+  .quickstart{
+    margin-top:32px; background:var(--panel); border:1px solid var(--stroke);
+    border-radius:var(--radius); overflow:hidden;
+  }
+
+  /* ---------- section / item cards ---------- */
+  .category{ margin-bottom:64px; scroll-margin-top:24px; }
+  .category-head{ margin-bottom:22px; }
+  .category-head h2{ font-size:22px; margin-bottom:6px; }
+  .category-head p{ color:var(--subtext); font-size:13.8px; max-width:640px; }
+
+  .item{
+    background:var(--panel); border:1px solid var(--stroke);
+    border-radius:var(--radius); margin-bottom:18px; overflow:hidden;
+    scroll-margin-top:24px;
+  }
+  .item-head{
+    padding:18px 20px 14px;
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+  }
+  .item-title{ font-family:'Space Grotesk'; font-weight:600; font-size:16px; margin-bottom:5px; }
+  .item-desc{ color:var(--subtext); font-size:13.5px; max-width:560px; }
+  .item-desc code{ background:var(--elevated); padding:1px 5px; border-radius:4px; font-size:12px; color:#c9cdff; }
+
+  .preview{
+    padding:16px 20px; border-top:1px solid var(--stroke);
+    background:repeating-linear-gradient(135deg, #ffffff05 0 10px, transparent 10px 20px);
+    display:flex; align-items:center; min-height:64px;
+  }
+
+  .code-wrap{ position:relative; border-top:1px solid var(--stroke); }
+  .code-wrap pre{ margin:0; padding:16px 20px; overflow-x:auto; font-size:12.6px; line-height:1.65; }
+  .copy-btn{
+    position:absolute; top:10px; right:10px;
+    display:flex; align-items:center; gap:6px;
+    background:var(--elevated); border:1px solid var(--stroke);
+    color:var(--subtext); font-family:'Inter'; font-weight:600; font-size:11.5px;
+    padding:6px 10px; border-radius:6px; cursor:pointer;
+    transition:all .12s;
+  }
+  .copy-btn:hover{ border-color:var(--accent); color:var(--text); }
+  .copy-btn.copied{ border-color:var(--success); color:var(--success); background:#5ac88222; }
+  .copy-btn svg{ width:13px; height:13px; }
+
+  .item-note{
+    padding:12px 20px; border-top:1px solid var(--stroke);
+    font-size:12.5px; color:var(--subtext); background:#7289ff0a;
+  }
+  .item-note b{ color:var(--text); }
+
+  /* ---------- fake widget previews (CSS replicas of the actual components) ---------- */
+  .fw-row{ display:flex; align-items:center; gap:10px; font-size:13px; }
+  .fw-card{
+    background:var(--elevated); border:1px solid var(--stroke); border-radius:8px;
+    padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%;
+  }
+  .fw-label{ color:var(--text); font-size:13px; }
+  .fw-btn{ background:var(--elevated-hover); border:1px solid var(--stroke); border-radius:6px; padding:7px 14px; font-size:12.5px; color:var(--text); }
+  .fw-toggle{ width:38px; height:20px; border-radius:10px; background:var(--accent); position:relative; flex-shrink:0; }
+  .fw-toggle::after{ content:''; position:absolute; width:16px; height:16px; border-radius:50%; background:#fff; top:2px; right:2px; }
+  .fw-toggle.off{ background:#3a3a40; }
+  .fw-toggle.off::after{ right:auto; left:2px; }
+  .fw-checkbox{ width:18px; height:18px; border-radius:5px; background:var(--accent); flex-shrink:0; position:relative; }
+  .fw-checkbox::after{ content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#0c0c10; font-weight:700; }
+  .fw-slider-track{ flex:1; height:5px; border-radius:3px; background:#3a3a40; position:relative; margin:0 4px; }
+  .fw-slider-fill{ position:absolute; left:0; top:0; bottom:0; width:38%; border-radius:3px; background:var(--accent); }
+  .fw-slider-knob{ position:absolute; left:38%; top:50%; width:14px; height:14px; border-radius:50%; background:#fff; transform:translate(-50%,-50%); box-shadow:0 0 0 3px var(--accent); }
+  .fw-slider-val{ font-family:'JetBrains Mono'; font-size:11.5px; color:var(--subtext); width:28px; text-align:right; }
+  .fw-dropdown{ background:var(--panel); border:1px solid var(--stroke); border-radius:6px; padding:7px 12px; font-size:12.5px; color:var(--subtext); }
+  .fw-swatch{ width:22px; height:22px; border-radius:6px; border:1px solid var(--stroke); background:linear-gradient(135deg,#ff6b6b,#e65a5a); }
+  .fw-key{ background:var(--panel); border:1px solid var(--stroke); border-radius:6px; padding:6px 10px; font-family:'JetBrains Mono'; font-size:11.5px; color:var(--text); }
+  .fw-divider{ height:1px; width:100%; background:var(--stroke); }
+  .fw-section{ font-size:11px; letter-spacing:1.2px; text-transform:uppercase; color:var(--faint); font-weight:600; }
+  .fw-tabbar{ display:flex; gap:6px; }
+  .fw-tab{ display:flex; align-items:center; gap:6px; background:var(--elevated); border-radius:6px; padding:6px 12px; font-size:12px; color:var(--subtext); }
+  .fw-tab.active{ background:var(--accent-dim); color:var(--text); }
+  .fw-tab svg{ width:13px; height:13px; opacity:.85; }
+  .fw-toast{ background:var(--elevated); border:1px solid var(--stroke); border-left:3px solid var(--accent); border-radius:8px; padding:10px 14px; font-size:12.5px; }
+  .fw-toast b{ display:block; font-size:12.5px; margin-bottom:2px; }
+  .fw-toast span{ color:var(--subtext); font-size:11.8px; }
+
+  ::-webkit-scrollbar{ width:9px; height:9px; }
+  ::-webkit-scrollbar-thumb{ background:var(--stroke); border-radius:5px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+
+  @media (max-width:820px){
+    .shell{ grid-template-columns:1fr; }
+    .sidebar{ position:relative; height:auto; }
+    .main{ padding:32px 20px 100px; }
+  }
+
+  .toast-global{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--elevated); border:1px solid var(--accent); color:var(--text);
+    padding:10px 18px; border-radius:8px; font-size:13px; font-weight:500;
+    opacity:0; pointer-events:none; transition:opacity .18s, transform .18s;
+    z-index:999; display:flex; align-items:center; gap:8px;
+  }
+  .toast-global.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <nav class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">UI</div>
+      <div>
+        <div class="brand-text">Aurora</div>
+        <div class="brand-sub">docs &amp; snippets</div>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="searchInput" placeholder="Filter elements…" autocomplete="off">
+    </div>
+
+    <div id="navContainer"></div>
+  </nav>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main">
+
+    <section class="hero">
+      <div class="hero-eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+        every snippet below is copy-ready
+      </div>
+      <h1>Aurora reference</h1>
+      <p>A component-by-component reference for Aurora, a Roblox UI library. Click <b>Copy</b> on any block to grab that exact code — window setup, tabs with icons, every input component, notifications, and the full JSON config system with autoload. Paste straight into your script.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#quickstart">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          Quick start
+        </a>
+        <a class="btn" href="#config">Config &amp; autoload</a>
+        <a class="btn" href="#tabs">Tab icons</a>
+        <a class="btn" href="#themes">Themes</a>
+      </div>
+    </section>
+
+    <div id="content"></div>
+
+  </main>
+</div>
+
+<div class="toast-global" id="globalToast">Copied to clipboard</div>
+
+<script>
+/* =========================================================================
+   DATA — every doc entry lives here. Add/remove/edit entries and the page
+   rebuilds itself automatically (nav + content + copy buttons).
+   ========================================================================= */
+
+const DOCS = [
+  {
+    id: "quickstart",
+    label: "Quick Start",
+    heading: "Getting started",
+    intro: "The three calls every script needs: load the library, create the window, create a tab.",
+    items: [
+      {
+        id: "load",
+        title: "Load the library",
+        desc: "Loads the module straight from your GitHub repo. Do this once at the top of your script.",
+        code: `local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/JSY01-create/UI-Library/refs/heads/main/Library.lua"))()`
+      },
+      {
+        id: "create-window",
+        title: "Create a window",
+        desc: "The whole popup box. <code>Title</code> shows in the top bar, <code>Subtitle</code> is optional smaller text next to it.",
+        code: `local Window = Library:CreateWindow({
+    Title = "Aurora",
+    Subtitle = "v1.0"
+})`
+      },
+      {
+        id: "full-example",
+        title: "Full minimal example",
+        desc: "Window → tab → one component. Copy this as a starting skeleton.",
+        code: `local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/JSY01-create/UI-Library/refs/heads/main/Library.lua"))()
+
+local Window = Library:CreateWindow({
+    Title = "Aurora",
+    Subtitle = "v1.0"
+})
+
+local MainTab = Window:CreateTab("Main", "home")
+
+Window:AddButton(MainTab, "Click me", function()
+    print("The button was clicked!")
+end)`
+      }
+    ]
+  },
+
+  {
+    id: "tabs",
+    label: "Tabs & Icons",
+    heading: "Tabs & icons",
+    intro: "Tabs are pages in the sidebar. Icons can be a plain emoji, or a real Lucide icon if you register one.",
+    items: [
+      {
+        id: "create-tab",
+        title: "CreateTab(name, icon)",
+        desc: "Adds a page + sidebar button. Returns the page — pass it as the first argument to every <code>Add___</code> call below. The first tab you create is shown by default.",
+        preview: `<div class="fw-tabbar">
+          <div class="fw-tab active">${iconSvg('home')} Main</div>
+          <div class="fw-tab">${iconSvg('settings')} Settings</div>
+          <div class="fw-tab">🎯 Aimbot</div>
+        </div>`,
+        code: `local MainTab = Window:CreateTab("Main", "home")
+local SettingsTab = Window:CreateTab("Settings", "settings")
+local AimTab = Window:CreateTab("Aimbot", "🎯") -- plain emoji still works too`
+      },
+      {
+        id: "register-icons",
+        title: "Registering real Lucide icons",
+        desc: "By default an unrecognized icon name just falls back to plain text. To get real icons like the ones above, register their Roblox asset ids once — grab them from <code>icons.rest</code> (search the icon, copy the <code>rbxassetid</code>) or the <code>lucide-roblox</code> GitHub repo.",
+        code: `-- do this once, right after loading the library
+Library:SetIcons({
+    home     = "rbxassetid://10723407389",
+    settings = "rbxassetid://10734950309",
+    target   = "rbxassetid://10734943151",
+    shield   = "rbxassetid://10734986167",
+})
+
+-- now any CreateTab call can use these names
+local MainTab = Window:CreateTab("Main", "home")`,
+        note: "If a name isn't in <b>Library.Icons</b>, CreateTab silently treats it as plain text/emoji — nothing breaks if you skip this step."
+      }
+    ]
+  },
+
+  {
+    id: "themes",
+    label: "Themes",
+    heading: "Themes",
+    intro: "Swap the whole color palette with one word — call <code>Library:SetTheme(name)</code> before you create the window, or pass <code>Theme</code> straight into <code>CreateWindow</code>. Names aren't case sensitive, and a few aliases work too (<code>\"White\"</code> → Light, <code>\"Pink\"</code> → Sakura).",
+    items: [
+      {
+        id: "theme-swatches",
+        title: "Built-in presets",
+        desc: "Six ready-made palettes. Each one sets background, sidebar, card, border, accent, and text colors together so everything stays readable.",
+        preview: `<div class="fw-row" style="flex-wrap:wrap;gap:14px;">
+          ${themeSwatch('Dark', '#18181b', '#7289ff')}
+          ${themeSwatch('Light', '#f6f6f9', '#5865f2')}
+          ${themeSwatch('Sakura', '#1e151a', '#f58cb5')}
+          ${themeSwatch('Midnight', '#0d0f18', '#63b3ff')}
+          ${themeSwatch('Ocean', '#0e181b', '#40c8c5')}
+          ${themeSwatch('Crimson', '#181011', '#e64b50')}
+        </div>`,
+        code: `-- pick any one of: "Dark", "Light", "Sakura", "Midnight", "Ocean", "Crimson"
+Library:SetTheme("Sakura")
+
+local Window = Library:CreateWindow({
+    Title = "Aurora",
+    Subtitle = "v1.0"
+})`
+      },
+      {
+        id: "theme-inline",
+        title: "Setting it inline",
+        desc: "Skip the separate call and just pass <code>Theme</code> in your <code>CreateWindow</code> config.",
+        code: `local Window = Library:CreateWindow({
+    Title = "Aurora",
+    Subtitle = "v1.0",
+    Theme = "Midnight"
+})`
+      },
+      {
+        id: "theme-custom",
+        title: "Adding your own theme",
+        desc: "Register a new preset in <code>Library.ThemePresets</code> with the same fields as the built-in ones, then call <code>SetTheme</code> with its name like any other.",
+        code: `Library.ThemePresets.Grape = {
+    Background = Color3.fromRGB(26, 20, 34),
+    Sidebar = Color3.fromRGB(21, 16, 28),
+    Elevated = Color3.fromRGB(38, 30, 48),
+    ElevatedHover = Color3.fromRGB(46, 37, 58),
+    Stroke = Color3.fromRGB(56, 45, 70),
+    Accent = Color3.fromRGB(170, 110, 255),
+    AccentHover = Color3.fromRGB(190, 140, 255),
+    Text = Color3.fromRGB(240, 235, 245),
+    SubText = Color3.fromRGB(160, 150, 170),
+}
+
+Library:SetTheme("Grape")`,
+        note: "Call <b>SetTheme</b> before <b>CreateWindow</b>. Every component reads its color from the Theme table the moment it's built, so the palette has to be swapped in before the window (and its tabs/components) exist — same reason you'd pick paint before painting a room, not after."
+      }
+    ]
+  },
+
+  {
+    id: "layout",
+    label: "Layout",
+    heading: "Layout elements",
+    intro: "Non-interactive elements used to organize a tab's contents.",
+    items: [
+      {
+        id: "label",
+        title: "AddLabel(tab, text)",
+        desc: "Just a plain line of text. Good for instructions or info.",
+        preview: `<div class="fw-label" style="color:var(--subtext)">This is a label</div>`,
+        code: `Window:AddLabel(MainTab, "This is a label")`
+      },
+      {
+        id: "section",
+        title: "AddSection(tab, text)",
+        desc: "A small bold uppercase heading, used to group components.",
+        preview: `<div class="fw-section">Movement</div>`,
+        code: `Window:AddSection(MainTab, "Movement")`
+      },
+      {
+        id: "divider",
+        title: "AddDivider(tab)",
+        desc: "A thin horizontal line, useful for separating groups.",
+        preview: `<div class="fw-divider"></div>`,
+        code: `Window:AddDivider(MainTab)`
+      }
+    ]
+  },
+
+  {
+    id: "components",
+    label: "Components",
+    heading: "Interactive components",
+    intro: "Every one of these takes the tab as the first argument. The last argument, <code>flag</code>, is optional — give a component a flag and its value gets remembered by the config system below.",
+    items: [
+      {
+        id: "button",
+        title: "AddButton(tab, text, callback)",
+        desc: "A clickable card that runs <code>callback</code> when pressed.",
+        preview: `<div class="fw-card"><span class="fw-label">Click me</span></div>`,
+        code: `Window:AddButton(MainTab, "Click me", function()
+    print("clicked")
+end)`
+      },
+      {
+        id: "toggle",
+        title: "AddToggle(tab, text, default, callback, flag)",
+        desc: "An on/off switch. <code>default</code> is the starting state (true/false), <code>callback</code> receives the new state.",
+        preview: `<div class="fw-card"><span class="fw-label">Enable Fly</span><div class="fw-toggle off"></div></div>`,
+        code: `Window:AddToggle(MainTab, "Enable Fly", false, function(state)
+    print(state)
+end, "FlyEnabled")`
+      },
+      {
+        id: "checkbox",
+        title: "AddCheckbox(tab, text, default, callback, flag)",
+        desc: "A compact tick-box alternative to Toggle. Same idea, different look — pick whichever style you prefer for a given option.",
+        preview: `<div class="fw-card"><span class="fw-label">Show FPS</span><div class="fw-checkbox"></div></div>`,
+        code: `Window:AddCheckbox(MainTab, "Show FPS", true, function(state)
+    print(state)
+end, "ShowFPS")`
+      },
+      {
+        id: "slider",
+        title: "AddSlider(tab, text, min, max, default, callback, flag)",
+        desc: "Drag left/right to pick a whole number between <code>min</code> and <code>max</code>.",
+        preview: `<div class="fw-card" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <span class="fw-label">WalkSpeed</span>
+          <div class="fw-row"><div class="fw-slider-track"><div class="fw-slider-fill"></div><div class="fw-slider-knob"></div></div><span class="fw-slider-val">42</span></div>
+        </div>`,
+        code: `Window:AddSlider(MainTab, "WalkSpeed", 16, 100, 16, function(value)
+    print(value)
+end, "WalkSpeed")`
+      },
+      {
+        id: "textbox",
+        title: "AddTextbox(tab, placeholder, callback, flag)",
+        desc: "A single-line text input. The callback fires when the box loses focus (click away or press Enter) and receives <code>(text, enterPressed)</code>.",
+        preview: `<div class="fw-card"><span class="fw-label" style="color:var(--faint)">Enter your name...</span></div>`,
+        code: `Window:AddTextbox(MainTab, "Enter your name...", function(text, enterPressed)
+    print(text, enterPressed)
+end, "PlayerName")`
+      },
+      {
+        id: "dropdown",
+        title: "AddDropdown(tab, text, options, default, callback, flag)",
+        desc: "Pick one option from a list, click to expand/collapse. The returned table has a <code>.Refresh(newOptions)</code> method to rebuild the list on the fly, and <code>.Get()</code> / <code>.Set(v)</code>.",
+        preview: `<div class="fw-card"><span class="fw-label">Theme</span><div class="fw-dropdown">Dark ▾</div></div>`,
+        code: `Window:AddDropdown(MainTab, "Theme", {"Dark", "Light"}, "Dark", function(choice)
+    print(choice)
+end, "SelectedTheme")`
+      },
+      {
+        id: "colorpicker",
+        title: "AddColorPicker(tab, text, default, callback, flag)",
+        desc: "Three sliders (Red, Green, Blue) inside an expandable card, same click-to-expand idea as Dropdown.",
+        preview: `<div class="fw-card"><span class="fw-label">ESP Color</span><div class="fw-swatch"></div></div>`,
+        code: `Window:AddColorPicker(MainTab, "ESP Color", Color3.fromRGB(255, 0, 0), function(color)
+    print(color)
+end, "ESPColor")`
+      },
+      {
+        id: "keybind",
+        title: "AddKeybind(tab, text, default, callback, flag)",
+        desc: "Click the box, then press any key to bind it. The callback fires every time that key is pressed afterward — great for \"press this key to toggle X\".",
+        preview: `<div class="fw-card"><span class="fw-label">Toggle Menu</span><div class="fw-key">RightShift</div></div>`,
+        code: `Window:AddKeybind(MainTab, "Toggle Menu", Enum.KeyCode.RightShift, function()
+    print("key pressed")
+end, "MenuKey")`
+      }
+    ]
+  },
+
+  {
+    id: "notify",
+    label: "Notifications",
+    heading: "Notifications",
+    intro: "A small toast message in the top-right corner that fades out on its own.",
+    items: [
+      {
+        id: "notify",
+        title: "Notify(title, text, duration)",
+        desc: "Pops up a toast that fades out after <code>duration</code> seconds.",
+        preview: `<div class="fw-toast"><b>Saved</b><span>Your settings were saved!</span></div>`,
+        code: `Window:Notify("Saved", "Your settings were saved!", 3)`
+      }
+    ]
+  },
+
+  {
+    id: "config",
+    label: "Config System",
+    heading: "Config saving, loading &amp; autoload",
+    intro: "Every component you give a <code>flag</code> to gets tracked automatically. These functions save/load all of them at once as JSON — to a real file when running in an executor, or to a DataStore when running inside Studio / a published game. No setup required.",
+    items: [
+      {
+        id: "get-json",
+        title: "GetConfigJSON()",
+        desc: "Returns the current config as a raw JSON string, in case you want to handle saving it yourself — e.g. send it somewhere else instead of a file.",
+        code: `local json = Library:GetConfigJSON()
+print(json) -- '{"FlyEnabled":true,"WalkSpeed":42,...}'`
+      },
+      {
+        id: "save-config",
+        title: "SaveConfig(name)",
+        desc: "Saves every flagged value to JSON under the given name. Returns <code>true/false</code> for success. Writes a real <code>.json</code> file in executors, or a DataStore entry in Studio/published games — it detects which automatically.",
+        code: `local success, err = Window:SaveConfig("MySettings")`
+      },
+      {
+        id: "load-config",
+        title: "LoadConfig(name)",
+        desc: "Loads a previously-saved config by name and applies it to every matching flagged component. Returns <code>true</code> if something was actually loaded.",
+        code: `local loaded = Window:LoadConfig("MySettings")`
+      },
+      {
+        id: "create-config",
+        title: "CreateConfig(name)",
+        desc: "Identical to SaveConfig — just a clearer name for when you're saving a brand-new config for the first time (e.g. from a \"New Config\" textbox + button), rather than overwriting an existing one.",
+        code: `Window:CreateConfig("MySettings")`
+      },
+      {
+        id: "list-configs",
+        title: "ListConfigs()",
+        desc: "Returns an array of every saved config's name (no <code>.json</code>, just the plain name) — feed this straight into a Dropdown so the player can pick one.",
+        code: `local ConfigDropdown = Window:AddDropdown(SettingsTab, "Config", Window:ListConfigs(), nil, function(name)
+    Window:LoadConfig(name)
+end)
+
+-- the list can change later (new saves, deletes) — call this to refresh it:
+ConfigDropdown.Refresh(Window:ListConfigs())`
+      },
+      {
+        id: "delete-config",
+        title: "DeleteConfig(name)",
+        desc: "Permanently removes a saved config.",
+        code: `Window:DeleteConfig("MySettings")`
+      },
+      {
+        id: "autoload",
+        title: "Selecting which config auto-loads",
+        desc: "Two functions handle this: <code>SetAutoloadConfig(name)</code> marks a config as \"the one\", and <code>LoadAutoloadConfig()</code> reads that marker back and loads it. Call <code>SetAutoloadConfig</code> from a button/dropdown in your settings tab, and call <code>LoadAutoloadConfig</code> once near the top of your script so it applies before the player starts using the UI.",
+        code: `-- in your settings tab, e.g. after picking a config in a dropdown:
+Window:SetAutoloadConfig("MySettings")
+
+-- then, near the very top of your script (after CreateWindow):
+Window:LoadAutoloadConfig() -- safe to call even if nothing was ever set`,
+        note: "Want to know which config is currently marked as autoload — for example to pre-select it in a dropdown — without actually loading it? Use <b>Window:GetAutoloadConfig()</b>, it returns the name or <b>nil</b>."
+      },
+      {
+        id: "config-manager",
+        title: "AddConfigManager(tab) — the whole thing, prebuilt",
+        desc: "Drops a ready-made \"Configs\" section into any tab: a dropdown of saved configs, a name box + Save button, Load / Set Autoload / Delete buttons — all wired to the functions above. This is the fastest way to let players choose their own autoload config.",
+        preview: `<div class="fw-card" style="flex-direction:column;align-items:stretch;gap:10px;">
+          <span class="fw-section">Configs</span>
+          <div class="fw-row"><div class="fw-dropdown" style="flex:1">MySettings ▾</div></div>
+          <div class="fw-row" style="gap:6px;flex-wrap:wrap;">
+            <span class="fw-btn">Save</span><span class="fw-btn">Load</span><span class="fw-btn">Set Autoload</span><span class="fw-btn">Delete</span>
+          </div>
+        </div>`,
+        code: `local SettingsTab = Window:CreateTab("Settings", "settings")
+Window:AddConfigManager(SettingsTab)
+
+-- near the top of your script:
+Window:LoadAutoloadConfig()`
+      }
+    ]
+  }
+];
+
+/* icon svg helper used inside preview HTML strings above */
+function iconSvg(name){
+  const paths = {
+    home: '<path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">${paths[name]||''}</svg>`;
+}
+
+/* small labelled swatch used in the Themes section preview */
+function themeSwatch(name, bg, accent){
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+    <div style="width:56px;height:56px;border-radius:10px;background:${bg};border:1px solid var(--stroke);display:flex;align-items:flex-end;justify-content:flex-end;padding:6px;">
+      <div style="width:14px;height:14px;border-radius:50%;background:${accent};box-shadow:0 0 8px ${accent}99;"></div>
+    </div>
+    <span style="font-size:11px;color:var(--subtext);font-family:'JetBrains Mono';">${name}</span>
+  </div>`;
+}
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
+const navContainer = document.getElementById('navContainer');
+const content = document.getElementById('content');
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+DOCS.forEach(group => {
+  // nav group
+  const navGroup = document.createElement('div');
+  navGroup.className = 'nav-group';
+  navGroup.innerHTML = `<div class="nav-group-label">${group.label}</div>`;
+  group.items.forEach(item => {
+    const a = document.createElement('a');
+    a.className = 'nav-link';
+    a.href = `#${item.id}`;
+    a.dataset.search = (group.label + ' ' + item.title + ' ' + item.desc).toLowerCase();
+    a.innerHTML = `<span class="dot"></span>${item.title.split('(')[0].trim()}`;
+    navGroup.appendChild(a);
+  });
+  navContainer.appendChild(navGroup);
+
+  // content category
+  const cat = document.createElement('section');
+  cat.className = 'category';
+  cat.id = group.id;
+  cat.innerHTML = `
+    <div class="category-head">
+      <h2>${group.heading}</h2>
+      <p>${group.intro}</p>
+    </div>
+  `;
+
+  group.items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.id = item.id;
+    el.innerHTML = `
+      <div class="item-head">
+        <div>
+          <div class="item-title">${item.title}</div>
+          <div class="item-desc">${item.desc}</div>
+        </div>
+      </div>
+      ${item.preview ? `<div class="preview">${item.preview}</div>` : ''}
+      <div class="code-wrap">
+        <button class="copy-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
+        <pre><code class="language-lua">${escapeHtml(item.code)}</code></pre>
+      </div>
+      ${item.note ? `<div class="item-note">${item.note}</div>` : ''}
+    `;
+    cat.appendChild(el);
+  });
+
+  content.appendChild(cat);
+});
+
+/* highlight all code blocks */
+hljs.highlightAll();
+
+/* copy buttons */
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const codeText = btn.parentElement.querySelector('code').innerText;
+    const finish = () => {
+      btn.classList.add('copied');
+      const original = btn.innerHTML;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> Copied`;
+      showGlobalToast('Snippet copied to clipboard');
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(codeText).then(finish).catch(() => fallbackCopy(codeText, finish));
+    } else {
+      fallbackCopy(codeText, finish);
+    }
+  });
+});
+
+function fallbackCopy(text, cb){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  cb();
+}
+
+let toastTimer;
+function showGlobalToast(msg){
+  const t = document.getElementById('globalToast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ---------- search / filter ---------- */
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.style.display = (!q || link.dataset.search.includes(q)) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.item').forEach(item => {
+    const nav = document.querySelector(`.nav-link[href="#${item.id}"]`);
+    item.style.display = (!q || (nav && nav.style.display !== 'none')) ? 'block' : 'none';
+  });
+});
+
+/* ---------- active nav link on scroll ---------- */
+const links = Array.from(document.querySelectorAll('.nav-link'));
+const items = Array.from(document.querySelectorAll('.item'));
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting){
+      links.forEach(l => l.classList.remove('active'));
+      const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -70% 0px' });
+items.forEach(item => observer.observe(item));
+</script>
+</body>
+</html>
