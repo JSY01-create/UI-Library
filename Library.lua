@@ -516,10 +516,26 @@ function Library:CreateWindow(config)
 	-- lot smaller than a desktop window, so instead of a fixed 640x420
 	-- (which would spill off the edges of a phone screen) we clamp the
 	-- window to whatever fits, with sane min/max bounds either way.
+	--
+	-- The window's HEIGHT also fits itself to whatever the active tab's
+	-- content actually needs (see resizeToFitContent further down), so a
+	-- tab with 3 components gets a short window and a tab with 20 gets a
+	-- tall one (up to the ceiling below) instead of every tab always
+	-- rendering at the same near-full-screen height regardless of how
+	-- much is actually in it. MIN_WINDOW_HEIGHT / maxWindowHeight() are
+	-- just the floor and ceiling that fitting is clamped between.
 	local camera = workspace.CurrentCamera
 	local viewport = (camera and camera.ViewportSize) or Vector2.new(1280, 720)
+	local MIN_WINDOW_HEIGHT = 200 -- title bar + a couple of rows; never shrink smaller than this
+	local function maxWindowHeight()
+		local vp = (camera and camera.ViewportSize) or Vector2.new(1280, 720)
+		-- 480 instead of the old fixed 560 — a window that tall looked
+		-- mostly empty for a short tab, and this is just the ceiling now,
+		-- not the default (short tabs render well under it)
+		return math.clamp(vp.Y - 100, MIN_WINDOW_HEIGHT, 480)
+	end
 	local windowWidth = math.clamp(viewport.X - 24, 300, 640)
-	local windowHeight = math.clamp(viewport.Y - 100, 380, 560)
+	local windowHeight = math.clamp(380, MIN_WINDOW_HEIGHT, maxWindowHeight()) -- starting guess; resizeToFitContent corrects it as soon as the first tab has components
 
 	-- The main box itself.
 	local MainFrame = new("Frame", {
@@ -549,7 +565,10 @@ function Library:CreateWindow(config)
 		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 			local vp = camera.ViewportSize
 			windowWidth = math.clamp(vp.X - 24, 300, 640)
-			expandedHeight = math.clamp(vp.Y - 100, 380, 560)
+			-- re-clamp the height we already fit to content, rather than
+			-- resetting it to the full viewport — a short tab should stay
+			-- short after a rotation instead of snapping to max height
+			expandedHeight = math.clamp(expandedHeight, MIN_WINDOW_HEIGHT, maxWindowHeight())
 			local targetHeight = minimized and 46 or expandedHeight
 			MainFrame.Size = UDim2.new(0, windowWidth, 0, targetHeight)
 			MainFrame.Position = UDim2.new(0.5, -windowWidth / 2, 0.5, -targetHeight / 2)
@@ -732,7 +751,30 @@ function Library:CreateWindow(config)
 		Position = UDim2.new(0, 150, 0, 46),
 		BackgroundTransparency = 1,
 		Parent = MainFrame,
-	}, { padding(Theme.Padding) })
+	})
+	-- No padding on ContentArea itself: each tab's Page (see CreateTab)
+	-- owns its own inset now, so there's exactly one place controlling
+	-- it instead of two paddings potentially stacking on top of each
+	-- other.
+
+	-- Shrinks/grows MainFrame to fit `page`'s current content, clamped
+	-- between MIN_WINDOW_HEIGHT and maxWindowHeight(). Called whenever
+	-- the visible tab's content changes size and whenever the player
+	-- switches tabs (see CreateTab), so the window height always matches
+	-- whichever tab is actually showing instead of one fixed height for
+	-- every tab regardless of how much is in it.
+	--
+	-- This is attached directly onto the Window instance below (instead
+	-- of being a normal `function Library:Something()` method) because
+	-- it needs closure access to THIS window's own MainFrame/
+	-- expandedHeight/minimized/windowWidth — those are private locals up
+	-- above, not fields stored on `self`.
+	local function resizeToFitContent(page)
+		if minimized or not page.Visible then return end
+		local desired = math.clamp(46 + page.CanvasSize.Y.Offset, MIN_WINDOW_HEIGHT, maxWindowHeight())
+		expandedHeight = desired
+		tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, desired) }, 0.15)
+	end
 
 	-- A deliberate hairline where the sidebar meets the content area.
 	-- Without this, that seam is just two flat colors touching directly,
@@ -757,6 +799,7 @@ function Library:CreateWindow(config)
 		MainFrame = MainFrame,
 		TabList = TabList,
 		ContentArea = ContentArea,
+		ResizeToFitContent = resizeToFitContent, -- see the function above for why this lives here instead of on Library
 		Tabs = {}, -- keeps track of every tab created, so clicking one can hide the others
 	}, Library)
 
@@ -833,11 +876,22 @@ function Library:CreateTab(name, icon)
 		Parent = self.ContentArea,
 	}, {
 		listLayout(Enum.FillDirection.Vertical, Theme.ItemGap),
-		-- right: clears the scrollbar so cards don't butt up against it.
-		-- bottom: without this the last card sits flush against the very
-		-- bottom edge of the window, which reads as it being cut off.
-		padding(0, 0, 12, 14, 0),
+		-- top/left: breathing room so cards aren't flush against the
+		-- window's edge — these used to both be 0, which is what caused
+		-- content to look clipped/cut off on the left. right: clears the
+		-- scrollbar so cards don't butt up against it. bottom: without
+		-- this the last card sits flush against the very bottom edge of
+		-- the window, which reads as it being cut off too.
+		padding(0, 10, 12, 14, 14),
 	})
+
+	-- Every time a component gets added (or removed) from this page, its
+	-- CanvasSize changes — use that as the signal to re-fit the window's
+	-- height to match, so a short tab doesn't render at the same height
+	-- as a long one.
+	Page:GetPropertyChangedSignal("CanvasSize"):Connect(function()
+		self.ResizeToFitContent(Page)
+	end)
 
 	local tabData = { Button = TabButton, Page = Page, Name = name }
 	table.insert(self.Tabs, tabData)
@@ -857,6 +911,7 @@ function Library:CreateTab(name, icon)
 				tween(iconImg, { ImageColor3 = active and Theme.Text or Theme.SubText })
 			end
 		end
+		self.ResizeToFitContent(Page) -- this tab's content is very likely a different height than the one just hidden
 	end)
 
 	-- Small hover highlight for inactive tabs.
