@@ -67,26 +67,10 @@ local UserInputService = game:GetService("UserInputService") -- detects mouse/ke
 
 local player = Players.LocalPlayer
 
--- Most executors expose a `gethui()` global that returns a dedicated,
--- more hidden container to parent GUIs into (instead of PlayerGui) —
--- it survives things like character resets more reliably and is the
--- de-facto standard place UI libraries are expected to parent into.
--- Not every environment has it (plain Roblox Studio doesn't), so we
--- fall back to PlayerGui when it's missing instead of erroring.
-local function getGuiParent()
-	if typeof(gethui) == "function" then
-		local ok, result = pcall(gethui)
-		if ok and result then
-			return result
-		end
-	end
-	return player:WaitForChild("PlayerGui")
-end
-
 -- If you run this script twice (e.g. from the Studio command bar while
 -- testing), this deletes the old UI first so you don't end up with two
 -- windows stacked on top of each other.
-local existingGui = getGuiParent():FindFirstChild("Aurora")
+local existingGui = player:WaitForChild("PlayerGui"):FindFirstChild("Aurora")
 if existingGui then
 	existingGui:Destroy()
 end
@@ -181,23 +165,21 @@ Library.Theme = Theme -- exposed in case you want to read/tweak it from outside 
 -- supported too (e.g. "White" == "Light").
 --
 -- Built-in presets: "Dark" (default), "Light" (alias "White"),
--- "Sakura", "Midnight", "Ocean", "Crimson", "Grape".
+-- "Sakura", "Midnight", "Ocean", "Crimson".
 --
--- You can also add your own the same way "Grape" is defined below:
---     Library.ThemePresets.Forest = {
---         Background = Color3.fromRGB(16, 22, 18),
---         Sidebar = Color3.fromRGB(10, 15, 12),
---         Elevated = Color3.fromRGB(26, 36, 29),
---         ElevatedHover = Color3.fromRGB(34, 46, 38),
---         Stroke = Color3.fromRGB(45, 60, 49),
---         Accent = Color3.fromRGB(96, 200, 120),
---         AccentHover = Color3.fromRGB(120, 216, 142),
---         Text = Color3.fromRGB(232, 242, 234),
---         SubText = Color3.fromRGB(150, 172, 155),
---         Success = Color3.fromRGB(110, 210, 140),
---         Danger = Color3.fromRGB(230, 100, 95),
+-- You can also add your own:
+--     Library.ThemePresets.Grape = {
+--         Background = Color3.fromRGB(26, 20, 34),
+--         Sidebar = Color3.fromRGB(21, 16, 28),
+--         Elevated = Color3.fromRGB(38, 30, 48),
+--         ElevatedHover = Color3.fromRGB(46, 37, 58),
+--         Stroke = Color3.fromRGB(56, 45, 70),
+--         Accent = Color3.fromRGB(170, 110, 255),
+--         AccentHover = Color3.fromRGB(190, 140, 255),
+--         Text = Color3.fromRGB(240, 235, 245),
+--         SubText = Color3.fromRGB(160, 150, 170),
 --     }
---     Library:SetTheme("Forest")
+--     Library:SetTheme("Grape")
 --
 -- NOTE: call SetTheme BEFORE CreateWindow. Every component reads its
 -- colors from the Theme table at the moment it's built, so the
@@ -286,18 +268,44 @@ Library.ThemePresets = {
 		Success = Color3.fromRGB(110, 200, 140),
 		Danger = Color3.fromRGB(250, 110, 110),
 	},
-	Grape = {
-		Background = Color3.fromRGB(26, 20, 34),
-		Sidebar = Color3.fromRGB(21, 16, 28),
-		Elevated = Color3.fromRGB(38, 30, 48),
-		ElevatedHover = Color3.fromRGB(46, 37, 58),
-		Stroke = Color3.fromRGB(56, 45, 70),
-		Accent = Color3.fromRGB(170, 110, 255),
-		AccentHover = Color3.fromRGB(190, 140, 255),
-		Text = Color3.fromRGB(240, 235, 245),
-		SubText = Color3.fromRGB(160, 150, 170),
-		Success = Color3.fromRGB(120, 200, 150),
-		Danger = Color3.fromRGB(235, 95, 120),
+	Forest = {
+		Background = Color3.fromRGB(15, 20, 16),
+		Sidebar = Color3.fromRGB(9, 13, 10),
+		Elevated = Color3.fromRGB(24, 33, 26),
+		ElevatedHover = Color3.fromRGB(31, 42, 34),
+		Stroke = Color3.fromRGB(40, 54, 44),
+		Accent = Color3.fromRGB(96, 200, 120),
+		AccentHover = Color3.fromRGB(120, 215, 140),
+		Text = Color3.fromRGB(230, 240, 232),
+		SubText = Color3.fromRGB(145, 168, 150),
+		Success = Color3.fromRGB(130, 220, 150),
+		Danger = Color3.fromRGB(230, 90, 90),
+	},
+	Amber = {
+		Background = Color3.fromRGB(22, 18, 13),
+		Sidebar = Color3.fromRGB(14, 11, 8),
+		Elevated = Color3.fromRGB(38, 30, 20),
+		ElevatedHover = Color3.fromRGB(49, 39, 26),
+		Stroke = Color3.fromRGB(62, 49, 33),
+		Accent = Color3.fromRGB(245, 175, 80),
+		AccentHover = Color3.fromRGB(250, 195, 110),
+		Text = Color3.fromRGB(245, 236, 222),
+		SubText = Color3.fromRGB(180, 160, 135),
+		Success = Color3.fromRGB(140, 200, 110),
+		Danger = Color3.fromRGB(230, 90, 90),
+	},
+	Violet = {
+		Background = Color3.fromRGB(20, 16, 26),
+		Sidebar = Color3.fromRGB(12, 10, 16),
+		Elevated = Color3.fromRGB(33, 26, 42),
+		ElevatedHover = Color3.fromRGB(42, 34, 54),
+		Stroke = Color3.fromRGB(54, 44, 68),
+		Accent = Color3.fromRGB(150, 110, 255),
+		AccentHover = Color3.fromRGB(172, 138, 255),
+		Text = Color3.fromRGB(238, 232, 245),
+		SubText = Color3.fromRGB(160, 150, 175),
+		Success = Color3.fromRGB(110, 205, 150),
+		Danger = Color3.fromRGB(235, 95, 110),
 	},
 }
 
@@ -310,7 +318,10 @@ local ThemeAliases = {
 	black = "Midnight",
 	blue = "Ocean",
 	red = "Crimson",
-	purple = "Grape",
+	green = "Forest",
+	gold = "Amber",
+	orange = "Amber",
+	purple = "Violet",
 }
 
 -- Swaps every color in the Theme table for the named preset. Not case
@@ -375,43 +386,6 @@ local function stroke(color, thickness)
 		Thickness = thickness or 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
-end
-
--- A small "V" shaped chevron/arrow icon, built from two rotated bars
--- instead of a unicode arrow character. The Gotham fonts this library
--- uses everywhere else don't ship a glyph for "▾", so text arrows can
--- silently render as nothing — this always renders, in any font.
--- AnchorPoint is centered, so `Position` should be the CENTER point
--- you want the arrow at, and rotating it (e.g. in a tween) spins it
--- neatly in place instead of drifting.
-local function chevron(size, color, thickness)
-	size = size or 10
-	thickness = thickness or 2
-	local icon = new("Frame", {
-		Size = UDim2.new(0, size, 0, size),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundTransparency = 1,
-	})
-	local legLength = size * 0.62
-	new("Frame", {
-		Size = UDim2.new(0, legLength, 0, thickness),
-		Position = UDim2.new(0, 0, 0.32, 0),
-		AnchorPoint = Vector2.new(0, 0.5),
-		Rotation = 45,
-		BackgroundColor3 = color or Theme.SubText,
-		BorderSizePixel = 0,
-		Parent = icon,
-	}, { corner(UDim.new(1, 0)) })
-	new("Frame", {
-		Size = UDim2.new(0, legLength, 0, thickness),
-		Position = UDim2.new(1, 0, 0.32, 0),
-		AnchorPoint = Vector2.new(1, 0.5),
-		Rotation = -45,
-		BackgroundColor3 = color or Theme.SubText,
-		BorderSizePixel = 0,
-		Parent = icon,
-	}, { corner(UDim.new(1, 0)) })
-	return icon
 end
 
 -- Adds inner spacing (like CSS "padding") to whatever it's parented to.
@@ -509,33 +483,17 @@ function Library:CreateWindow(config)
 		Name = "Aurora",
 		ResetOnSpawn = false, -- keeps the UI alive when the player respawns
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		Parent = getGuiParent(),
+		Parent = player:WaitForChild("PlayerGui"),
 	})
 
 	-- Figure out how much screen we've actually got. On a phone that's a
 	-- lot smaller than a desktop window, so instead of a fixed 640x420
 	-- (which would spill off the edges of a phone screen) we clamp the
 	-- window to whatever fits, with sane min/max bounds either way.
-	--
-	-- The window's HEIGHT also fits itself to whatever the active tab's
-	-- content actually needs (see resizeToFitContent further down), so a
-	-- tab with 3 components gets a short window and a tab with 20 gets a
-	-- tall one (up to the ceiling below) instead of every tab always
-	-- rendering at the same near-full-screen height regardless of how
-	-- much is actually in it. MIN_WINDOW_HEIGHT / maxWindowHeight() are
-	-- just the floor and ceiling that fitting is clamped between.
 	local camera = workspace.CurrentCamera
 	local viewport = (camera and camera.ViewportSize) or Vector2.new(1280, 720)
-	local MIN_WINDOW_HEIGHT = 200 -- title bar + a couple of rows; never shrink smaller than this
-	local function maxWindowHeight()
-		local vp = (camera and camera.ViewportSize) or Vector2.new(1280, 720)
-		-- 480 instead of the old fixed 560 — a window that tall looked
-		-- mostly empty for a short tab, and this is just the ceiling now,
-		-- not the default (short tabs render well under it)
-		return math.clamp(vp.Y - 100, MIN_WINDOW_HEIGHT, 480)
-	end
 	local windowWidth = math.clamp(viewport.X - 24, 300, 640)
-	local windowHeight = math.clamp(380, MIN_WINDOW_HEIGHT, maxWindowHeight()) -- starting guess; resizeToFitContent corrects it as soon as the first tab has components
+	local windowHeight = math.clamp(viewport.Y - 120, 340, 420)
 
 	-- The main box itself.
 	local MainFrame = new("Frame", {
@@ -549,8 +507,7 @@ function Library:CreateWindow(config)
 
 	-- Tracks whether the window is currently minimized (see the Minimize
 	-- button below), and remembers the "should be this tall when open"
-	-- height so restoring it always lands back at the right size, even
-	-- after a phone rotation resizes the window in between.
+	-- height so restoring it lands back at the right size.
 	local minimized = false
 	local expandedHeight = windowHeight
 
@@ -558,22 +515,6 @@ function Library:CreateWindow(config)
 	-- exist further down) can still reference the real instances once
 	-- they're assigned, instead of accidentally creating new globals
 	local Sidebar, ContentArea
-
-	-- Re-run the sizing above any time the screen changes size, e.g. a
-	-- phone being rotated between portrait and landscape.
-	if camera then
-		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
-			local vp = camera.ViewportSize
-			windowWidth = math.clamp(vp.X - 24, 300, 640)
-			-- re-clamp the height we already fit to content, rather than
-			-- resetting it to the full viewport — a short tab should stay
-			-- short after a rotation instead of snapping to max height
-			expandedHeight = math.clamp(expandedHeight, MIN_WINDOW_HEIGHT, maxWindowHeight())
-			local targetHeight = minimized and 46 or expandedHeight
-			MainFrame.Size = UDim2.new(0, windowWidth, 0, targetHeight)
-			MainFrame.Position = UDim2.new(0.5, -windowWidth / 2, 0.5, -targetHeight / 2)
-		end)
-	end
 
 	--------------------------------------------------------------
 	-- Title bar (top strip with the window name + close button)
@@ -632,7 +573,7 @@ function Library:CreateWindow(config)
 		Size = UDim2.new(0, 28, 0, 28),
 		Position = UDim2.new(1, -72, 0.5, -14),
 		BackgroundColor3 = Theme.Elevated,
-		Text = "-",
+		Text = "—",
 		Font = Theme.FontBold,
 		TextSize = 16,
 		TextColor3 = Theme.SubText,
@@ -654,7 +595,7 @@ function Library:CreateWindow(config)
 			MinimizeBtn.Text = "+"
 			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 46) }, 0.18)
 		else
-			MinimizeBtn.Text = "-"
+			MinimizeBtn.Text = "—"
 			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, expandedHeight) }, 0.18)
 			task.wait(0.18)
 			-- only reveal these again once the window has actually
@@ -751,30 +692,7 @@ function Library:CreateWindow(config)
 		Position = UDim2.new(0, 150, 0, 46),
 		BackgroundTransparency = 1,
 		Parent = MainFrame,
-	})
-	-- No padding on ContentArea itself: each tab's Page (see CreateTab)
-	-- owns its own inset now, so there's exactly one place controlling
-	-- it instead of two paddings potentially stacking on top of each
-	-- other.
-
-	-- Shrinks/grows MainFrame to fit `page`'s current content, clamped
-	-- between MIN_WINDOW_HEIGHT and maxWindowHeight(). Called whenever
-	-- the visible tab's content changes size and whenever the player
-	-- switches tabs (see CreateTab), so the window height always matches
-	-- whichever tab is actually showing instead of one fixed height for
-	-- every tab regardless of how much is in it.
-	--
-	-- This is attached directly onto the Window instance below (instead
-	-- of being a normal `function Library:Something()` method) because
-	-- it needs closure access to THIS window's own MainFrame/
-	-- expandedHeight/minimized/windowWidth — those are private locals up
-	-- above, not fields stored on `self`.
-	local function resizeToFitContent(page)
-		if minimized or not page.Visible then return end
-		local desired = math.clamp(46 + page.CanvasSize.Y.Offset, MIN_WINDOW_HEIGHT, maxWindowHeight())
-		expandedHeight = desired
-		tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, desired) }, 0.15)
-	end
+	}, { padding(Theme.Padding) })
 
 	-- A deliberate hairline where the sidebar meets the content area.
 	-- Without this, that seam is just two flat colors touching directly,
@@ -799,7 +717,6 @@ function Library:CreateWindow(config)
 		MainFrame = MainFrame,
 		TabList = TabList,
 		ContentArea = ContentArea,
-		ResizeToFitContent = resizeToFitContent, -- see the function above for why this lives here instead of on Library
 		Tabs = {}, -- keeps track of every tab created, so clicking one can hide the others
 	}, Library)
 
@@ -876,22 +793,8 @@ function Library:CreateTab(name, icon)
 		Parent = self.ContentArea,
 	}, {
 		listLayout(Enum.FillDirection.Vertical, Theme.ItemGap),
-		-- top/left: breathing room so cards aren't flush against the
-		-- window's edge — these used to both be 0, which is what caused
-		-- content to look clipped/cut off on the left. right: clears the
-		-- scrollbar so cards don't butt up against it. bottom: without
-		-- this the last card sits flush against the very bottom edge of
-		-- the window, which reads as it being cut off too.
-		padding(0, 10, 12, 14, 14),
+		padding(0, 0, 6, 0, 0), -- small right-side gap so cards don't butt up against the scrollbar
 	})
-
-	-- Every time a component gets added (or removed) from this page, its
-	-- CanvasSize changes — use that as the signal to re-fit the window's
-	-- height to match, so a short tab doesn't render at the same height
-	-- as a long one.
-	Page:GetPropertyChangedSignal("CanvasSize"):Connect(function()
-		self.ResizeToFitContent(Page)
-	end)
 
 	local tabData = { Button = TabButton, Page = Page, Name = name }
 	table.insert(self.Tabs, tabData)
@@ -911,7 +814,6 @@ function Library:CreateTab(name, icon)
 				tween(iconImg, { ImageColor3 = active and Theme.Text or Theme.SubText })
 			end
 		end
-		self.ResizeToFitContent(Page) -- this tab's content is very likely a different height than the one just hidden
 	end)
 
 	-- Small hover highlight for inactive tabs.
@@ -1017,53 +919,35 @@ function Library:AddDivider(tab)
 end
 
 ----------------------------------------------------------------------
--- BUTTON — a label on the left, and a small clickable button on the
--- right that runs `callback` when pressed — same left-label/
--- right-control layout as Toggle and Checkbox use.
+-- BUTTON — a clickable card that runs `callback` when pressed.
 -- Window:AddButton(Tab, "Click me", function() print("clicked") end)
 ----------------------------------------------------------------------
 function Library:AddButton(tab, text, callback)
 	callback = callback or function() end -- if you forget to pass a callback, this just does nothing instead of erroring
 	local card = baseCard(tab, 38)
 
-	new("TextLabel", {
-		Size = UDim2.new(1, -110, 1, 0),
-		Position = UDim2.new(0, 14, 0, 0),
+	local btn = new("TextButton", {
+		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 		Text = text,
 		Font = Theme.Font,
 		TextSize = 14,
 		TextColor3 = Theme.Text,
-		TextXAlignment = Enum.TextXAlignment.Left,
+		AutoButtonColor = false,
 		Parent = card,
 	})
 
-	-- the actual clickable control, right-aligned with the same 14px
-	-- margin the Toggle switch / Slider value / Keybind box all use
-	local btn = new("TextButton", {
-		Size = UDim2.new(0, 84, 0, 28),
-		Position = UDim2.new(1, -98, 0.5, -14),
-		BackgroundColor3 = Theme.ElevatedHover,
-		Text = "Run",
-		Font = Theme.FontBold,
-		TextSize = 13,
-		TextColor3 = Theme.Text,
-		AutoButtonColor = false,
-		Parent = card,
-	}, { corner(UDim.new(0, 6)), stroke() })
-
-	-- lighten on hover, flash the accent color on click — same feel as
-	-- before, just scoped to the small button instead of the whole card
+	-- lighten the card slightly on hover, and flash the accent color on click
 	btn.MouseEnter:Connect(function()
-		tween(btn, { BackgroundColor3 = Theme.Accent })
+		tween(card, { BackgroundColor3 = Theme.ElevatedHover })
 	end)
 	btn.MouseLeave:Connect(function()
-		tween(btn, { BackgroundColor3 = Theme.ElevatedHover })
+		tween(card, { BackgroundColor3 = Theme.Elevated })
 	end)
 	btn.MouseButton1Click:Connect(function()
-		tween(btn, { BackgroundColor3 = Theme.AccentHover }, 0.08)
+		tween(card, { BackgroundColor3 = Theme.Accent }, 0.08)
 		task.wait(0.08)
-		tween(btn, { BackgroundColor3 = Theme.ElevatedHover }, 0.12)
+		tween(card, { BackgroundColor3 = Theme.ElevatedHover }, 0.12)
 		callback()
 	end)
 
@@ -1151,28 +1035,11 @@ function Library:AddCheckbox(tab, text, default, callback, flag)
 	callback = callback or function() end
 	local state = default or false
 
-	-- same height as the other single-row components (Toggle, Button,
-	-- Textbox) so rows don't look mismatched sitting next to each other
-	local card = baseCard(tab, 38)
+	local card = baseCard(tab, 36)
 
-	-- label on the left, same left margin (14px) every other component uses
-	new("TextLabel", {
-		Size = UDim2.new(1, -50, 1, 0),
-		Position = UDim2.new(0, 14, 0, 0),
-		BackgroundTransparency = 1,
-		Text = text,
-		Font = Theme.Font,
-		TextSize = 14,
-		TextColor3 = Theme.Text,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Parent = card,
-	})
-
-	-- tick box on the right (matches the docs site layout), same 14px
-	-- right margin the Toggle switch and Slider value label use
 	local Box = new("Frame", {
 		Size = UDim2.new(0, 20, 0, 20),
-		Position = UDim2.new(1, -34, 0.5, -10),
+		Position = UDim2.new(0, 12, 0.5, -10),
 		BackgroundColor3 = state and Theme.Accent or Theme.Background,
 		Parent = card,
 	}, { corner(UDim.new(0, 5)), stroke(Theme.Stroke) })
@@ -1183,9 +1050,21 @@ function Library:AddCheckbox(tab, text, default, callback, flag)
 		Text = "✓",
 		Font = Theme.FontBold,
 		TextSize = 14,
-		TextColor3 = Color3.fromRGB(12, 12, 16), -- dark tick on the accent-colored box, matches the docs
+		TextColor3 = Theme.Text,
 		TextTransparency = state and 0 or 1, -- hidden (transparent) checkmark when unticked
 		Parent = Box,
+	})
+
+	new("TextLabel", {
+		Size = UDim2.new(1, -50, 1, 0),
+		Position = UDim2.new(0, 42, 0, 0),
+		BackgroundTransparency = 1,
+		Text = text,
+		Font = Theme.Font,
+		TextSize = 14,
+		TextColor3 = Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = card,
 	})
 
 	local ClickArea = new("TextButton", {
@@ -1373,35 +1252,13 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 	local selected = default or options[1]
 	local open = false
 
-	-- closed height matches ColorPicker/Keybind (the other "click to
-	-- expand a boxed control" components), so rows don't jump between
-	-- 38px and 44px depending on which component they sit next to
-	local CLOSED_HEIGHT = 44
-	local OPTION_HEIGHT = 30
-	local OPTION_GAP = 2
-
-	-- total height of the option list for a given option count, including
-	-- the small gaps we put between rows
-	local function listHeight(n)
-		if n <= 0 then return 0 end
-		return n * OPTION_HEIGHT + (n - 1) * OPTION_GAP
-	end
-
-	-- total card height for a given option count while open
-	local function openHeight(n)
-		return CLOSED_HEIGHT + 8 + listHeight(n) + 10
-	end
-
-	local card = baseCard(tab, CLOSED_HEIGHT)
+	local card = baseCard(tab, 38)
 	card.ClipsDescendants = true -- hides the option list until the card is resized taller
 	card.ZIndex = 2
 
-	-- FIXED height/position (not scaled to the card), so this doesn't
-	-- stretch — and the text inside it drift downward — as the card
-	-- grows taller to reveal the option list
 	new("TextLabel", {
-		Size = UDim2.new(0.42, -14, 0, 30),
-		Position = UDim2.new(0, 14, 0, 7),
+		Size = UDim2.new(0.5, -14, 1, 0),
+		Position = UDim2.new(0, 14, 0, 0),
 		BackgroundTransparency = 1,
 		Text = text,
 		Font = Theme.Font,
@@ -1413,42 +1270,34 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 
 	-- shows the currently selected option, click it to open/close the list
 	local Selected = new("TextButton", {
-		Size = UDim2.new(0.58, -14, 0, 30),
-		Position = UDim2.new(0.42, 0, 0, 7),
+		Size = UDim2.new(0.5, -14, 0, 30),
+		Position = UDim2.new(0.5, 0, 0, 4),
 		BackgroundColor3 = Theme.Background,
-		Text = selected and tostring(selected) or "None",
+		Text = (selected and tostring(selected) or "None") .. "  ▾",
 		Font = Theme.Font,
 		TextSize = 13,
 		TextColor3 = Theme.SubText,
-		TextXAlignment = Enum.TextXAlignment.Left,
 		AutoButtonColor = false,
 		Parent = card,
-	}, { corner(UDim.new(0, 6)), padding(0, 0, 26, 0, 12) })
-
-	-- a real arrow icon instead of a text character, so it actually
-	-- shows up regardless of what glyphs the current font supports
-	local Arrow = chevron(9, Theme.SubText, 2)
-	Arrow.Position = UDim2.new(1, -16, 0.5, 0)
-	Arrow.Parent = Selected
+	}, { corner(UDim.new(0, 6)) })
 
 	local OptionsList = new("Frame", {
-		Size = UDim2.new(1, -28, 0, listHeight(#options)),
-		Position = UDim2.new(0, 14, 0, CLOSED_HEIGHT + 4),
-		BackgroundTransparency = 1,
+		Size = UDim2.new(1, -28, 0, #options * 30),
+		Position = UDim2.new(0, 14, 0, 42),
+		BackgroundColor3 = Theme.Background,
 		Visible = false,
 		Parent = card,
-	}, { listLayout(Enum.FillDirection.Vertical, OPTION_GAP) })
+	}, { corner(UDim.new(0, 6)), listLayout(Enum.FillDirection.Vertical, 0) })
 
 	-- Runs whenever an option is clicked, OR when you call api.Set(...)
 	-- from code — both should close the list and fire the callback the
 	-- same way, so this is shared between them.
 	local function selectOption(option)
 		selected = option
-		Selected.Text = tostring(option)
+		Selected.Text = tostring(option) .. "  ▾"
 		open = false
 		OptionsList.Visible = false
-		tween(Arrow, { Rotation = 0 })
-		tween(card, { Size = UDim2.new(1, 0, 0, CLOSED_HEIGHT) }) -- shrink back down
+		tween(card, { Size = UDim2.new(1, 0, 0, 38) }) -- shrink back down
 		callback(option)
 	end
 
@@ -1464,24 +1313,23 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 			end
 		end
 
-		OptionsList.Size = UDim2.new(1, -28, 0, listHeight(#options))
+		OptionsList.Size = UDim2.new(1, -28, 0, #options * 30)
 		if open then
-			tween(card, { Size = UDim2.new(1, 0, 0, openHeight(#options)) })
+			tween(card, { Size = UDim2.new(1, 0, 0, 42 + #options * 30 + 8) })
 		end
 
 		for i, option in ipairs(options) do
 			local optBtn = new("TextButton", {
-				Size = UDim2.new(1, 0, 0, OPTION_HEIGHT),
+				Size = UDim2.new(1, 0, 0, 30),
 				BackgroundColor3 = Theme.Background,
 				Text = tostring(option),
 				Font = Theme.Font,
 				TextSize = 13,
 				TextColor3 = Theme.SubText,
-				TextXAlignment = Enum.TextXAlignment.Left,
 				AutoButtonColor = false,
 				LayoutOrder = i,
 				Parent = OptionsList,
-			}, { corner(UDim.new(0, 6)), padding(0, 0, 12, 0, 12) })
+			})
 			optBtn.MouseEnter:Connect(function()
 				tween(optBtn, { BackgroundColor3 = Theme.ElevatedHover })
 			end)
@@ -1500,14 +1348,13 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 	Selected.MouseButton1Click:Connect(function()
 		open = not open
 		OptionsList.Visible = open
-		tween(Arrow, { Rotation = open and 180 or 0 })
-		tween(card, { Size = open and UDim2.new(1, 0, 0, openHeight(#options)) or UDim2.new(1, 0, 0, CLOSED_HEIGHT) })
+		tween(card, { Size = open and UDim2.new(1, 0, 0, 42 + #options * 30 + 8) or UDim2.new(1, 0, 0, 38) })
 	end)
 
 	local api = {
 		Set = function(v)
 			selected = v
-			Selected.Text = tostring(v)
+			Selected.Text = tostring(v) .. "  ▾"
 		end,
 		Get = function() return selected end,
 		Refresh = function(newOptions) rebuildOptions(newOptions) end,
@@ -1517,31 +1364,20 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 end
 
 ----------------------------------------------------------------------
--- COLOR PICKER — a saturation/value square + a hue bar (the standard
--- color-picker layout), with a hex code box, a plain-English RGB
--- readout, and a Copy button. Expands from the swatch, same
--- click-to-expand idea as the Dropdown above.
+-- COLOR PICKER — three sliders (Red, Green, Blue) inside an expandable
+-- card, same click-to-expand idea as the Dropdown above.
 -- Window:AddColorPicker(Tab, "ESP Color", Color3.fromRGB(255,0,0), function(color) end, "ESPColor")
 ----------------------------------------------------------------------
 function Library:AddColorPicker(tab, text, default, callback, flag)
 	callback = callback or function() end
 	local color = default or Color3.fromRGB(255, 255, 255)
-	local hue, sat, val = color:ToHSV()
 	local open = false
 
-	local HEADER_HEIGHT = 44
-	local SV_HEIGHT = 130
-	local HUE_HEIGHT = 20
-	local HEX_ROW_HEIGHT = 34
-	local GAP = 10
-	local PANEL_HEIGHT = SV_HEIGHT + GAP + HUE_HEIGHT + GAP + HEX_ROW_HEIGHT
-	local OPEN_HEIGHT = HEADER_HEIGHT + 8 + PANEL_HEIGHT + 14
-
-	local card = baseCard(tab, HEADER_HEIGHT)
+	local card = baseCard(tab, 38)
 	card.ClipsDescendants = true
 
 	new("TextLabel", {
-		Size = UDim2.new(1, -70, 0, HEADER_HEIGHT),
+		Size = UDim2.new(1, -70, 0, 38),
 		Position = UDim2.new(0, 14, 0, 0),
 		BackgroundTransparency = 1,
 		Text = text,
@@ -1552,10 +1388,10 @@ function Library:AddColorPicker(tab, text, default, callback, flag)
 		Parent = card,
 	})
 
-	-- the little colored square preview, click it to open the picker
+	-- the little colored square preview, click it to open the sliders
 	local Swatch = new("TextButton", {
 		Size = UDim2.new(0, 30, 0, 30),
-		Position = UDim2.new(1, -44, 0, 7),
+		Position = UDim2.new(1, -44, 0, 4),
 		BackgroundColor3 = color,
 		Text = "",
 		AutoButtonColor = false,
@@ -1563,282 +1399,117 @@ function Library:AddColorPicker(tab, text, default, callback, flag)
 	}, { corner(UDim.new(0, 6)), stroke() })
 
 	local Panel = new("Frame", {
-		Size = UDim2.new(1, -28, 0, PANEL_HEIGHT),
-		Position = UDim2.new(0, 14, 0, HEADER_HEIGHT + 8),
+		Size = UDim2.new(1, -28, 0, 100),
+		Position = UDim2.new(0, 14, 0, 46),
 		BackgroundTransparency = 1,
 		Visible = false,
 		Parent = card,
-	}, { listLayout(Enum.FillDirection.Vertical, GAP) })
+	}, { listLayout(Enum.FillDirection.Vertical, 10) })
 
-	--------------------------------------------------------------
-	-- the saturation/value square
-	--------------------------------------------------------------
-	local SVBox = new("Frame", {
-		Size = UDim2.new(1, 0, 0, SV_HEIGHT),
-		BackgroundColor3 = Color3.fromHSV(hue, 1, 1),
-		ClipsDescendants = true,
-		LayoutOrder = 1,
-		Parent = Panel,
-	}, { corner(UDim.new(0, 8)), stroke() })
+	local channels = { { key = "R", index = 1 }, { key = "G", index = 2 }, { key = "B", index = 3 } }
+	local sliderApis = {} -- will hold Get/Set for each of the 3 RGB sliders
 
-	-- white → transparent, left to right (controls saturation)
-	new("Frame", {
-		Size = UDim2.new(1, 0, 1, 0),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BorderSizePixel = 0,
-		Parent = SVBox,
-	}, {
-		new("UIGradient", {
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0),
-				NumberSequenceKeypoint.new(1, 1),
-			}),
-		}),
-	})
-
-	-- black → transparent, bottom to top (controls value/brightness)
-	new("Frame", {
-		Size = UDim2.new(1, 0, 1, 0),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BorderSizePixel = 0,
-		Parent = SVBox,
-	}, {
-		new("UIGradient", {
-			Rotation = 90,
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(1, 0),
-			}),
-		}),
-	})
-
-	local SVKnob = new("Frame", {
-		Size = UDim2.new(0, 14, 0, 14),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(sat, 0, 1 - val, 0),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		ZIndex = 3,
-		Parent = SVBox,
-	}, { corner(UDim.new(1, 0)), stroke(Color3.new(0, 0, 0), 1.5) })
-
-	--------------------------------------------------------------
-	-- the hue bar
-	--------------------------------------------------------------
-	local HueBar = new("Frame", {
-		Size = UDim2.new(1, 0, 0, HUE_HEIGHT),
-		LayoutOrder = 2,
-		Parent = Panel,
-	}, { corner(UDim.new(1, 0)), stroke() })
-
-	do
-		local hueKeypoints = {}
-		local steps = 12
-		for i = 0, steps do
-			local t = i / steps
-			table.insert(hueKeypoints, ColorSequenceKeypoint.new(t, Color3.fromHSV(t, 1, 1)))
-		end
-		new("UIGradient", { Color = ColorSequence.new(hueKeypoints), Parent = HueBar })
-	end
-
-	local HueKnob = new("Frame", {
-		Size = UDim2.new(0, 14, 0, 14),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(hue, 0, 0.5, 0),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		ZIndex = 3,
-		Parent = HueBar,
-	}, { corner(UDim.new(1, 0)), stroke(Color3.new(0, 0, 0), 1.5) })
-
-	--------------------------------------------------------------
-	-- hex code box + RGB readout + copy button
-	--------------------------------------------------------------
-	local HexRow = new("Frame", {
-		Size = UDim2.new(1, 0, 0, HEX_ROW_HEIGHT),
-		BackgroundTransparency = 1,
-		LayoutOrder = 3,
-		Parent = Panel,
-	})
-
-	new("TextLabel", {
-		Size = UDim2.new(0, 12, 1, 0),
-		BackgroundTransparency = 1,
-		Text = "#",
-		Font = Theme.FontBold,
-		TextSize = 14,
-		TextColor3 = Theme.SubText,
-		Parent = HexRow,
-	})
-
-	local function toHex(c)
-		return string.format("%02X%02X%02X", math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5))
-	end
-
-	local HexBox = new("TextBox", {
-		Size = UDim2.new(0, 66, 0, 26),
-		Position = UDim2.new(0, 12, 0, 4),
-		BackgroundColor3 = Theme.Background,
-		Text = toHex(color),
-		Font = Theme.FontBold,
-		TextSize = 13,
-		TextColor3 = Theme.Text,
-		ClearTextOnFocus = false,
-		Parent = HexRow,
-	}, { corner(UDim.new(0, 6)), padding(0, 0, 6, 0, 8) })
-
-	-- plain-English "R, G, B" readout, so you don't have to decode a
-	-- Color3's 0-1 fractions yourself
-	local RGBLabel = new("TextLabel", {
-		Size = UDim2.new(1, -152, 1, 0),
-		Position = UDim2.new(0, 88, 0, 0),
-		BackgroundTransparency = 1,
-		Text = string.format("R %d  G %d  B %d", math.floor(color.R * 255 + 0.5), math.floor(color.G * 255 + 0.5), math.floor(color.B * 255 + 0.5)),
-		Font = Theme.Font,
-		TextSize = 12,
-		TextColor3 = Theme.SubText,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-		Parent = HexRow,
-	})
-
-	local CopyBtn = new("TextButton", {
-		Size = UDim2.new(0, 60, 0, 26),
-		Position = UDim2.new(1, -60, 0, 4),
-		BackgroundColor3 = Theme.Background,
-		Text = "Copy",
-		Font = Theme.FontBold,
-		TextSize = 12,
-		TextColor3 = Theme.SubText,
-		AutoButtonColor = false,
-		Parent = HexRow,
-	}, { corner(UDim.new(0, 6)), stroke() })
-
-	--------------------------------------------------------------
-	-- shared update logic
-	--------------------------------------------------------------
-	local updatingFromCode = false -- guards against feedback loops while Set() is repainting everything
-
-	-- repaints every visual (swatch, hex box, RGB label, both knobs)
-	-- from the current hue/sat/val, without touching hue/sat/val itself
-	local function repaint()
-		color = Color3.fromHSV(hue, sat, val)
+	-- combines the 3 slider values back into one Color3 and fires the callback
+	local function updateColor()
+		local r, g, b = sliderApis[1]:Get(), sliderApis[2]:Get(), sliderApis[3]:Get()
+		color = Color3.fromRGB(r, g, b)
 		Swatch.BackgroundColor3 = color
-		SVBox.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-		SVKnob.Position = UDim2.new(sat, 0, 1 - val, 0)
-		HueKnob.Position = UDim2.new(hue, 0, 0.5, 0)
-		if not HexBox:IsFocused() then
-			HexBox.Text = toHex(color)
-		end
-		RGBLabel.Text = string.format(
-			"R %d  G %d  B %d",
-			math.floor(color.R * 255 + 0.5),
-			math.floor(color.G * 255 + 0.5),
-			math.floor(color.B * 255 + 0.5)
-		)
+		callback(color)
 	end
 
-	local function commit()
-		repaint()
-		if not updatingFromCode then
-			callback(color)
-		end
-	end
+	-- build one mini-slider row per RGB channel
+	for _, ch in ipairs(channels) do
+		local row = new("Frame", {
+			Size = UDim2.new(1, 0, 0, 26),
+			BackgroundTransparency = 1,
+		})
+		new("TextLabel", {
+			Size = UDim2.new(0, 16, 1, 0),
+			BackgroundTransparency = 1,
+			Text = ch.key,
+			Font = Theme.FontBold,
+			TextSize = 12,
+			TextColor3 = Theme.SubText,
+			Parent = row,
+		})
+		local track = new("Frame", {
+			Size = UDim2.new(1, -24, 0, 6),
+			Position = UDim2.new(0, 22, 0.5, -3),
+			BackgroundColor3 = Theme.Stroke,
+			Parent = row,
+		}, { corner(UDim.new(1, 0)) })
 
-	-- dragging inside the SV square sets saturation (x) and value (y)
-	local svDragging = false
-	local function updateFromSV(pos)
-		local relX = math.clamp((pos.X - SVBox.AbsolutePosition.X) / SVBox.AbsoluteSize.X, 0, 1)
-		local relY = math.clamp((pos.Y - SVBox.AbsolutePosition.Y) / SVBox.AbsoluteSize.Y, 0, 1)
-		sat = relX
-		val = 1 - relY
-		commit()
-	end
-	SVBox.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			svDragging = true
-			updateFromSV(input.Position)
-		end
-	end)
-	SVBox.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			svDragging = false
-		end
-	end)
+		-- figure out this channel's starting slider position from the default color
+		local startVal = ch.index == 1 and color.R * 255 or (ch.index == 2 and color.G * 255 or color.B * 255)
+		local fill = new("Frame", {
+			Size = UDim2.new(startVal / 255, 0, 1, 0),
+			BackgroundColor3 = Theme.Accent,
+			Parent = track,
+		}, { corner(UDim.new(1, 0)) })
+		local knob = new("Frame", {
+			Size = UDim2.new(0, 12, 0, 12),
+			Position = UDim2.new(startVal / 255, -6, 0.5, -6),
+			BackgroundColor3 = Theme.Text,
+			ZIndex = 2,
+			Parent = track,
+		}, { corner(UDim.new(1, 0)) })
 
-	-- dragging the hue bar sets hue (x)
-	local hueDragging = false
-	local function updateFromHue(pos)
-		local relX = math.clamp((pos.X - HueBar.AbsolutePosition.X) / HueBar.AbsoluteSize.X, 0, 1)
-		hue = relX
-		commit()
-	end
-	HueBar.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			hueDragging = true
-			updateFromHue(input.Position)
-		end
-	end)
-	HueBar.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			hueDragging = false
-		end
-	end)
+		local dragging = false
+		local value = startVal
 
-	UserInputService.InputChanged:Connect(function(input)
-		if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
-			return
+		-- same drag-to-set-value idea as the main Slider component above,
+		-- just scoped to 0-255 for a single color channel
+		local function updateFromInput(x)
+			local relative = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+			value = math.floor(255 * relative + 0.5)
+			fill.Size = UDim2.new(relative, 0, 1, 0)
+			knob.Position = UDim2.new(relative, -6, 0.5, -6)
+			updateColor()
 		end
-		if svDragging then
-			updateFromSV(input.Position)
-		elseif hueDragging then
-			updateFromHue(input.Position)
-		end
-	end)
-
-	-- typing a hex code in and pressing enter / clicking away applies it
-	HexBox.FocusLost:Connect(function()
-		local cleaned = HexBox.Text:gsub("#", ""):gsub("%s", "")
-		if #cleaned == 6 and cleaned:match("^%x+$") then
-			local r, g, b = tonumber(cleaned:sub(1, 2), 16), tonumber(cleaned:sub(3, 4), 16), tonumber(cleaned:sub(5, 6), 16)
-			hue, sat, val = Color3.fromRGB(r, g, b):ToHSV()
-			commit()
-		else
-			HexBox.Text = toHex(color) -- invalid input, snap back to the current color
-		end
-	end)
-
-	-- copies the hex code if the executor supports setclipboard; falls
-	-- back to focusing the box so you can select + Ctrl/Cmd-C it yourself
-	CopyBtn.MouseButton1Click:Connect(function()
-		local copied = false
-		if typeof(setclipboard) == "function" then
-			copied = pcall(setclipboard, "#" .. toHex(color))
-		end
-		if copied then
-			CopyBtn.Text = "Copied!"
-			tween(CopyBtn, { BackgroundColor3 = Theme.Accent })
-		else
-			HexBox:CaptureFocus()
-			CopyBtn.Text = "Select text"
-		end
-		task.delay(1.2, function()
-			CopyBtn.Text = "Copy"
-			tween(CopyBtn, { BackgroundColor3 = Theme.Background })
+		track.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = true
+				updateFromInput(input.Position.X)
+			end
 		end)
-	end)
+		track.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = false
+			end
+		end)
+		UserInputService.InputChanged:Connect(function(input)
+			if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+				updateFromInput(input.Position.X)
+			end
+		end)
 
-	-- clicking the swatch expands/collapses the picker panel
+		sliderApis[ch.index] = {
+			Get = function() return value end,
+			Set = function(v)
+				value = v
+				local relative = v / 255
+				fill.Size = UDim2.new(relative, 0, 1, 0)
+				knob.Position = UDim2.new(relative, -6, 0.5, -6)
+			end,
+		}
+
+		row.Parent = Panel
+	end
+
+	-- clicking the swatch expands/collapses the RGB sliders panel
 	Swatch.MouseButton1Click:Connect(function()
 		open = not open
 		Panel.Visible = open
-		tween(card, { Size = open and UDim2.new(1, 0, 0, OPEN_HEIGHT) or UDim2.new(1, 0, 0, HEADER_HEIGHT) })
+		tween(card, { Size = open and UDim2.new(1, 0, 0, 38 + 108 + 8) or UDim2.new(1, 0, 0, 38) })
 	end)
 
 	local api = {
 		Set = function(c)
-			updatingFromCode = true
-			hue, sat, val = c:ToHSV()
-			repaint()
-			updatingFromCode = false
+			color = c
+			Swatch.BackgroundColor3 = c
+			sliderApis[1].Set(math.floor(c.R * 255 + 0.5))
+			sliderApis[2].Set(math.floor(c.G * 255 + 0.5))
+			sliderApis[3].Set(math.floor(c.B * 255 + 0.5))
 		end,
 		Get = function() return color end,
 	}
@@ -1857,7 +1528,7 @@ function Library:AddKeybind(tab, text, default, callback, flag)
 	local bound = default or Enum.KeyCode.Unknown
 	local listening = false -- true while we're waiting for the player to press a key
 
-	local card = baseCard(tab, 44)
+	local card = baseCard(tab, 38)
 
 	new("TextLabel", {
 		Size = UDim2.new(1, -110, 1, 0),
@@ -1932,7 +1603,7 @@ end
 function Library:Notify(title, text, duration)
 	duration = duration or 3
 
-	local gui = getGuiParent():FindFirstChild("Aurora")
+	local gui = player:WaitForChild("PlayerGui"):FindFirstChild("Aurora")
 	if not gui then return end -- window was closed / never created, nothing to attach to
 
 	-- all notifications stack inside one shared holder frame, created
