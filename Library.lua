@@ -345,6 +345,43 @@ local function stroke(color, thickness)
 	})
 end
 
+-- A small "V" shaped chevron/arrow icon, built from two rotated bars
+-- instead of a unicode arrow character. The Gotham fonts this library
+-- uses everywhere else don't ship a glyph for "▾", so text arrows can
+-- silently render as nothing — this always renders, in any font.
+-- AnchorPoint is centered, so `Position` should be the CENTER point
+-- you want the arrow at, and rotating it (e.g. in a tween) spins it
+-- neatly in place instead of drifting.
+local function chevron(size, color, thickness)
+	size = size or 10
+	thickness = thickness or 2
+	local icon = new("Frame", {
+		Size = UDim2.new(0, size, 0, size),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+	})
+	local legLength = size * 0.62
+	new("Frame", {
+		Size = UDim2.new(0, legLength, 0, thickness),
+		Position = UDim2.new(0, 0, 0.32, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Rotation = 45,
+		BackgroundColor3 = color or Theme.SubText,
+		BorderSizePixel = 0,
+		Parent = icon,
+	}, { corner(UDim.new(1, 0)) })
+	new("Frame", {
+		Size = UDim2.new(0, legLength, 0, thickness),
+		Position = UDim2.new(1, 0, 0.32, 0),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Rotation = -45,
+		BackgroundColor3 = color or Theme.SubText,
+		BorderSizePixel = 0,
+		Parent = icon,
+	}, { corner(UDim.new(1, 0)) })
+	return icon
+end
+
 -- Adds inner spacing (like CSS "padding") to whatever it's parented to.
 local function padding(all, top, right, bottom, left)
 	return new("UIPadding", {
@@ -764,14 +801,7 @@ function Library:CreateTab(name, icon)
 		Parent = self.ContentArea,
 	}, {
 		listLayout(Enum.FillDirection.Vertical, Theme.ItemGap),
-		-- small gap on every side: without this, cards sit flush against
-		-- the ScrollingFrame's own edges. Since ScrollingFrame always
-		-- clips its contents, and each card's UIStroke is drawn straddling
-		-- the card's edge (half the outline sits just outside the card),
-		-- that outer half of the outline/rounded corner on the top+left
-		-- was getting sliced off by the clip. A few pixels of breathing
-		-- room on all sides keeps every corner intact.
-		padding(0, 3, 9, 3, 3), -- top, right (extra for scrollbar), bottom, left
+		padding(0, 0, 6, 0, 0), -- small right-side gap so cards don't butt up against the scrollbar
 	})
 
 	local tabData = { Button = TabButton, Page = Page, Name = name }
@@ -1013,11 +1043,28 @@ function Library:AddCheckbox(tab, text, default, callback, flag)
 	callback = callback or function() end
 	local state = default or false
 
-	local card = baseCard(tab, 36)
+	-- same height as the other single-row components (Toggle, Button,
+	-- Textbox) so rows don't look mismatched sitting next to each other
+	local card = baseCard(tab, 38)
 
+	-- label on the left, same left margin (14px) every other component uses
+	new("TextLabel", {
+		Size = UDim2.new(1, -50, 1, 0),
+		Position = UDim2.new(0, 14, 0, 0),
+		BackgroundTransparency = 1,
+		Text = text,
+		Font = Theme.Font,
+		TextSize = 14,
+		TextColor3 = Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = card,
+	})
+
+	-- tick box on the right (matches the docs site layout), same 14px
+	-- right margin the Toggle switch and Slider value label use
 	local Box = new("Frame", {
 		Size = UDim2.new(0, 20, 0, 20),
-		Position = UDim2.new(0, 12, 0.5, -10),
+		Position = UDim2.new(1, -34, 0.5, -10),
 		BackgroundColor3 = state and Theme.Accent or Theme.Background,
 		Parent = card,
 	}, { corner(UDim.new(0, 5)), stroke(Theme.Stroke) })
@@ -1028,21 +1075,9 @@ function Library:AddCheckbox(tab, text, default, callback, flag)
 		Text = "✓",
 		Font = Theme.FontBold,
 		TextSize = 14,
-		TextColor3 = Theme.Text,
+		TextColor3 = Color3.fromRGB(12, 12, 16), -- dark tick on the accent-colored box, matches the docs
 		TextTransparency = state and 0 or 1, -- hidden (transparent) checkmark when unticked
 		Parent = Box,
-	})
-
-	new("TextLabel", {
-		Size = UDim2.new(1, -50, 1, 0),
-		Position = UDim2.new(0, 42, 0, 0),
-		BackgroundTransparency = 1,
-		Text = text,
-		Font = Theme.Font,
-		TextSize = 14,
-		TextColor3 = Theme.Text,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Parent = card,
 	})
 
 	local ClickArea = new("TextButton", {
@@ -1230,13 +1265,35 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 	local selected = default or options[1]
 	local open = false
 
-	local card = baseCard(tab, 38)
+	-- closed height matches ColorPicker/Keybind (the other "click to
+	-- expand a boxed control" components), so rows don't jump between
+	-- 38px and 44px depending on which component they sit next to
+	local CLOSED_HEIGHT = 44
+	local OPTION_HEIGHT = 30
+	local OPTION_GAP = 2
+
+	-- total height of the option list for a given option count, including
+	-- the small gaps we put between rows
+	local function listHeight(n)
+		if n <= 0 then return 0 end
+		return n * OPTION_HEIGHT + (n - 1) * OPTION_GAP
+	end
+
+	-- total card height for a given option count while open
+	local function openHeight(n)
+		return CLOSED_HEIGHT + 8 + listHeight(n) + 10
+	end
+
+	local card = baseCard(tab, CLOSED_HEIGHT)
 	card.ClipsDescendants = true -- hides the option list until the card is resized taller
 	card.ZIndex = 2
 
+	-- FIXED height/position (not scaled to the card), so this doesn't
+	-- stretch — and the text inside it drift downward — as the card
+	-- grows taller to reveal the option list
 	new("TextLabel", {
-		Size = UDim2.new(0.5, -14, 1, 0),
-		Position = UDim2.new(0, 14, 0, 0),
+		Size = UDim2.new(0.42, -14, 0, 30),
+		Position = UDim2.new(0, 14, 0, 7),
 		BackgroundTransparency = 1,
 		Text = text,
 		Font = Theme.Font,
@@ -1248,34 +1305,42 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 
 	-- shows the currently selected option, click it to open/close the list
 	local Selected = new("TextButton", {
-		Size = UDim2.new(0.5, -14, 0, 30),
-		Position = UDim2.new(0.5, 0, 0, 4),
+		Size = UDim2.new(0.58, -14, 0, 30),
+		Position = UDim2.new(0.42, 0, 0, 7),
 		BackgroundColor3 = Theme.Background,
-		Text = (selected and tostring(selected) or "None") .. "  ▾",
+		Text = selected and tostring(selected) or "None",
 		Font = Theme.Font,
 		TextSize = 13,
 		TextColor3 = Theme.SubText,
+		TextXAlignment = Enum.TextXAlignment.Left,
 		AutoButtonColor = false,
 		Parent = card,
-	}, { corner(UDim.new(0, 6)) })
+	}, { corner(UDim.new(0, 6)), padding(0, 0, 26, 0, 12) })
+
+	-- a real arrow icon instead of a text character, so it actually
+	-- shows up regardless of what glyphs the current font supports
+	local Arrow = chevron(9, Theme.SubText, 2)
+	Arrow.Position = UDim2.new(1, -16, 0.5, 0)
+	Arrow.Parent = Selected
 
 	local OptionsList = new("Frame", {
-		Size = UDim2.new(1, -28, 0, #options * 30),
-		Position = UDim2.new(0, 14, 0, 42),
-		BackgroundColor3 = Theme.Background,
+		Size = UDim2.new(1, -28, 0, listHeight(#options)),
+		Position = UDim2.new(0, 14, 0, CLOSED_HEIGHT + 4),
+		BackgroundTransparency = 1,
 		Visible = false,
 		Parent = card,
-	}, { corner(UDim.new(0, 6)), listLayout(Enum.FillDirection.Vertical, 0) })
+	}, { listLayout(Enum.FillDirection.Vertical, OPTION_GAP) })
 
 	-- Runs whenever an option is clicked, OR when you call api.Set(...)
 	-- from code — both should close the list and fire the callback the
 	-- same way, so this is shared between them.
 	local function selectOption(option)
 		selected = option
-		Selected.Text = tostring(option) .. "  ▾"
+		Selected.Text = tostring(option)
 		open = false
 		OptionsList.Visible = false
-		tween(card, { Size = UDim2.new(1, 0, 0, 44) }) -- shrink back down
+		tween(Arrow, { Rotation = 0 })
+		tween(card, { Size = UDim2.new(1, 0, 0, CLOSED_HEIGHT) }) -- shrink back down
 		callback(option)
 	end
 
@@ -1291,23 +1356,24 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 			end
 		end
 
-		OptionsList.Size = UDim2.new(1, -28, 0, #options * 30)
+		OptionsList.Size = UDim2.new(1, -28, 0, listHeight(#options))
 		if open then
-			tween(card, { Size = UDim2.new(1, 0, 0, 48 + #options * 30 + 8) })
+			tween(card, { Size = UDim2.new(1, 0, 0, openHeight(#options)) })
 		end
 
 		for i, option in ipairs(options) do
 			local optBtn = new("TextButton", {
-				Size = UDim2.new(1, 0, 0, 30),
+				Size = UDim2.new(1, 0, 0, OPTION_HEIGHT),
 				BackgroundColor3 = Theme.Background,
 				Text = tostring(option),
 				Font = Theme.Font,
 				TextSize = 13,
 				TextColor3 = Theme.SubText,
+				TextXAlignment = Enum.TextXAlignment.Left,
 				AutoButtonColor = false,
 				LayoutOrder = i,
 				Parent = OptionsList,
-			})
+			}, { corner(UDim.new(0, 6)), padding(0, 0, 12, 0, 12) })
 			optBtn.MouseEnter:Connect(function()
 				tween(optBtn, { BackgroundColor3 = Theme.ElevatedHover })
 			end)
@@ -1326,13 +1392,14 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 	Selected.MouseButton1Click:Connect(function()
 		open = not open
 		OptionsList.Visible = open
-		tween(card, { Size = open and UDim2.new(1, 0, 0, 48 + #options * 30 + 8) or UDim2.new(1, 0, 0, 44) })
+		tween(Arrow, { Rotation = open and 180 or 0 })
+		tween(card, { Size = open and UDim2.new(1, 0, 0, openHeight(#options)) or UDim2.new(1, 0, 0, CLOSED_HEIGHT) })
 	end)
 
 	local api = {
 		Set = function(v)
 			selected = v
-			Selected.Text = tostring(v) .. "  ▾"
+			Selected.Text = tostring(v)
 		end,
 		Get = function() return selected end,
 		Refresh = function(newOptions) rebuildOptions(newOptions) end,
@@ -1342,20 +1409,31 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 end
 
 ----------------------------------------------------------------------
--- COLOR PICKER — three sliders (Red, Green, Blue) inside an expandable
--- card, same click-to-expand idea as the Dropdown above.
+-- COLOR PICKER — a saturation/value square + a hue bar (the standard
+-- color-picker layout), with a hex code box, a plain-English RGB
+-- readout, and a Copy button. Expands from the swatch, same
+-- click-to-expand idea as the Dropdown above.
 -- Window:AddColorPicker(Tab, "ESP Color", Color3.fromRGB(255,0,0), function(color) end, "ESPColor")
 ----------------------------------------------------------------------
 function Library:AddColorPicker(tab, text, default, callback, flag)
 	callback = callback or function() end
 	local color = default or Color3.fromRGB(255, 255, 255)
+	local hue, sat, val = color:ToHSV()
 	local open = false
 
-	local card = baseCard(tab, 44)
+	local HEADER_HEIGHT = 44
+	local SV_HEIGHT = 130
+	local HUE_HEIGHT = 20
+	local HEX_ROW_HEIGHT = 34
+	local GAP = 10
+	local PANEL_HEIGHT = SV_HEIGHT + GAP + HUE_HEIGHT + GAP + HEX_ROW_HEIGHT
+	local OPEN_HEIGHT = HEADER_HEIGHT + 8 + PANEL_HEIGHT + 14
+
+	local card = baseCard(tab, HEADER_HEIGHT)
 	card.ClipsDescendants = true
 
 	new("TextLabel", {
-		Size = UDim2.new(1, -70, 0, 44),
+		Size = UDim2.new(1, -70, 0, HEADER_HEIGHT),
 		Position = UDim2.new(0, 14, 0, 0),
 		BackgroundTransparency = 1,
 		Text = text,
@@ -1366,7 +1444,7 @@ function Library:AddColorPicker(tab, text, default, callback, flag)
 		Parent = card,
 	})
 
-	-- the little colored square preview, click it to open the sliders
+	-- the little colored square preview, click it to open the picker
 	local Swatch = new("TextButton", {
 		Size = UDim2.new(0, 30, 0, 30),
 		Position = UDim2.new(1, -44, 0, 7),
@@ -1377,117 +1455,282 @@ function Library:AddColorPicker(tab, text, default, callback, flag)
 	}, { corner(UDim.new(0, 6)), stroke() })
 
 	local Panel = new("Frame", {
-		Size = UDim2.new(1, -28, 0, 100),
-		Position = UDim2.new(0, 14, 0, 52),
+		Size = UDim2.new(1, -28, 0, PANEL_HEIGHT),
+		Position = UDim2.new(0, 14, 0, HEADER_HEIGHT + 8),
 		BackgroundTransparency = 1,
 		Visible = false,
 		Parent = card,
-	}, { listLayout(Enum.FillDirection.Vertical, 10) })
+	}, { listLayout(Enum.FillDirection.Vertical, GAP) })
 
-	local channels = { { key = "R", index = 1 }, { key = "G", index = 2 }, { key = "B", index = 3 } }
-	local sliderApis = {} -- will hold Get/Set for each of the 3 RGB sliders
+	--------------------------------------------------------------
+	-- the saturation/value square
+	--------------------------------------------------------------
+	local SVBox = new("Frame", {
+		Size = UDim2.new(1, 0, 0, SV_HEIGHT),
+		BackgroundColor3 = Color3.fromHSV(hue, 1, 1),
+		ClipsDescendants = true,
+		LayoutOrder = 1,
+		Parent = Panel,
+	}, { corner(UDim.new(0, 8)), stroke() })
 
-	-- combines the 3 slider values back into one Color3 and fires the callback
-	local function updateColor()
-		local r, g, b = sliderApis[1]:Get(), sliderApis[2]:Get(), sliderApis[3]:Get()
-		color = Color3.fromRGB(r, g, b)
-		Swatch.BackgroundColor3 = color
-		callback(color)
-	end
+	-- white → transparent, left to right (controls saturation)
+	new("Frame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Parent = SVBox,
+	}, {
+		new("UIGradient", {
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+		}),
+	})
 
-	-- build one mini-slider row per RGB channel
-	for _, ch in ipairs(channels) do
-		local row = new("Frame", {
-			Size = UDim2.new(1, 0, 0, 26),
-			BackgroundTransparency = 1,
-		})
-		new("TextLabel", {
-			Size = UDim2.new(0, 16, 1, 0),
-			BackgroundTransparency = 1,
-			Text = ch.key,
-			Font = Theme.FontBold,
-			TextSize = 12,
-			TextColor3 = Theme.SubText,
-			Parent = row,
-		})
-		local track = new("Frame", {
-			Size = UDim2.new(1, -24, 0, 6),
-			Position = UDim2.new(0, 22, 0.5, -3),
-			BackgroundColor3 = Theme.Stroke,
-			Parent = row,
-		}, { corner(UDim.new(1, 0)) })
+	-- black → transparent, bottom to top (controls value/brightness)
+	new("Frame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BorderSizePixel = 0,
+		Parent = SVBox,
+	}, {
+		new("UIGradient", {
+			Rotation = 90,
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(1, 0),
+			}),
+		}),
+	})
 
-		-- figure out this channel's starting slider position from the default color
-		local startVal = ch.index == 1 and color.R * 255 or (ch.index == 2 and color.G * 255 or color.B * 255)
-		local fill = new("Frame", {
-			Size = UDim2.new(startVal / 255, 0, 1, 0),
-			BackgroundColor3 = Theme.Accent,
-			Parent = track,
-		}, { corner(UDim.new(1, 0)) })
-		local knob = new("Frame", {
-			Size = UDim2.new(0, 12, 0, 12),
-			Position = UDim2.new(startVal / 255, -6, 0.5, -6),
-			BackgroundColor3 = Theme.Text,
-			ZIndex = 2,
-			Parent = track,
-		}, { corner(UDim.new(1, 0)) })
+	local SVKnob = new("Frame", {
+		Size = UDim2.new(0, 14, 0, 14),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(sat, 0, 1 - val, 0),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		ZIndex = 3,
+		Parent = SVBox,
+	}, { corner(UDim.new(1, 0)), stroke(Color3.new(0, 0, 0), 1.5) })
 
-		local dragging = false
-		local value = startVal
+	--------------------------------------------------------------
+	-- the hue bar
+	--------------------------------------------------------------
+	local HueBar = new("Frame", {
+		Size = UDim2.new(1, 0, 0, HUE_HEIGHT),
+		LayoutOrder = 2,
+		Parent = Panel,
+	}, { corner(UDim.new(1, 0)), stroke() })
 
-		-- same drag-to-set-value idea as the main Slider component above,
-		-- just scoped to 0-255 for a single color channel
-		local function updateFromInput(x)
-			local relative = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-			value = math.floor(255 * relative + 0.5)
-			fill.Size = UDim2.new(relative, 0, 1, 0)
-			knob.Position = UDim2.new(relative, -6, 0.5, -6)
-			updateColor()
+	do
+		local hueKeypoints = {}
+		local steps = 12
+		for i = 0, steps do
+			local t = i / steps
+			table.insert(hueKeypoints, ColorSequenceKeypoint.new(t, Color3.fromHSV(t, 1, 1)))
 		end
-		track.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-				dragging = true
-				updateFromInput(input.Position.X)
-			end
-		end)
-		track.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-				dragging = false
-			end
-		end)
-		UserInputService.InputChanged:Connect(function(input)
-			if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-				updateFromInput(input.Position.X)
-			end
-		end)
-
-		sliderApis[ch.index] = {
-			Get = function() return value end,
-			Set = function(v)
-				value = v
-				local relative = v / 255
-				fill.Size = UDim2.new(relative, 0, 1, 0)
-				knob.Position = UDim2.new(relative, -6, 0.5, -6)
-			end,
-		}
-
-		row.Parent = Panel
+		new("UIGradient", { Color = ColorSequence.new(hueKeypoints), Parent = HueBar })
 	end
 
-	-- clicking the swatch expands/collapses the RGB sliders panel
+	local HueKnob = new("Frame", {
+		Size = UDim2.new(0, 14, 0, 14),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(hue, 0, 0.5, 0),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		ZIndex = 3,
+		Parent = HueBar,
+	}, { corner(UDim.new(1, 0)), stroke(Color3.new(0, 0, 0), 1.5) })
+
+	--------------------------------------------------------------
+	-- hex code box + RGB readout + copy button
+	--------------------------------------------------------------
+	local HexRow = new("Frame", {
+		Size = UDim2.new(1, 0, 0, HEX_ROW_HEIGHT),
+		BackgroundTransparency = 1,
+		LayoutOrder = 3,
+		Parent = Panel,
+	})
+
+	new("TextLabel", {
+		Size = UDim2.new(0, 12, 1, 0),
+		BackgroundTransparency = 1,
+		Text = "#",
+		Font = Theme.FontBold,
+		TextSize = 14,
+		TextColor3 = Theme.SubText,
+		Parent = HexRow,
+	})
+
+	local function toHex(c)
+		return string.format("%02X%02X%02X", math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5))
+	end
+
+	local HexBox = new("TextBox", {
+		Size = UDim2.new(0, 66, 0, 26),
+		Position = UDim2.new(0, 12, 0, 4),
+		BackgroundColor3 = Theme.Background,
+		Text = toHex(color),
+		Font = Theme.FontBold,
+		TextSize = 13,
+		TextColor3 = Theme.Text,
+		ClearTextOnFocus = false,
+		Parent = HexRow,
+	}, { corner(UDim.new(0, 6)), padding(0, 0, 6, 0, 8) })
+
+	-- plain-English "R, G, B" readout, so you don't have to decode a
+	-- Color3's 0-1 fractions yourself
+	local RGBLabel = new("TextLabel", {
+		Size = UDim2.new(1, -152, 1, 0),
+		Position = UDim2.new(0, 88, 0, 0),
+		BackgroundTransparency = 1,
+		Text = string.format("R %d  G %d  B %d", math.floor(color.R * 255 + 0.5), math.floor(color.G * 255 + 0.5), math.floor(color.B * 255 + 0.5)),
+		Font = Theme.Font,
+		TextSize = 12,
+		TextColor3 = Theme.SubText,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		Parent = HexRow,
+	})
+
+	local CopyBtn = new("TextButton", {
+		Size = UDim2.new(0, 60, 0, 26),
+		Position = UDim2.new(1, -60, 0, 4),
+		BackgroundColor3 = Theme.Background,
+		Text = "Copy",
+		Font = Theme.FontBold,
+		TextSize = 12,
+		TextColor3 = Theme.SubText,
+		AutoButtonColor = false,
+		Parent = HexRow,
+	}, { corner(UDim.new(0, 6)), stroke() })
+
+	--------------------------------------------------------------
+	-- shared update logic
+	--------------------------------------------------------------
+	local updatingFromCode = false -- guards against feedback loops while Set() is repainting everything
+
+	-- repaints every visual (swatch, hex box, RGB label, both knobs)
+	-- from the current hue/sat/val, without touching hue/sat/val itself
+	local function repaint()
+		color = Color3.fromHSV(hue, sat, val)
+		Swatch.BackgroundColor3 = color
+		SVBox.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+		SVKnob.Position = UDim2.new(sat, 0, 1 - val, 0)
+		HueKnob.Position = UDim2.new(hue, 0, 0.5, 0)
+		if not HexBox:IsFocused() then
+			HexBox.Text = toHex(color)
+		end
+		RGBLabel.Text = string.format(
+			"R %d  G %d  B %d",
+			math.floor(color.R * 255 + 0.5),
+			math.floor(color.G * 255 + 0.5),
+			math.floor(color.B * 255 + 0.5)
+		)
+	end
+
+	local function commit()
+		repaint()
+		if not updatingFromCode then
+			callback(color)
+		end
+	end
+
+	-- dragging inside the SV square sets saturation (x) and value (y)
+	local svDragging = false
+	local function updateFromSV(pos)
+		local relX = math.clamp((pos.X - SVBox.AbsolutePosition.X) / SVBox.AbsoluteSize.X, 0, 1)
+		local relY = math.clamp((pos.Y - SVBox.AbsolutePosition.Y) / SVBox.AbsoluteSize.Y, 0, 1)
+		sat = relX
+		val = 1 - relY
+		commit()
+	end
+	SVBox.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			svDragging = true
+			updateFromSV(input.Position)
+		end
+	end)
+	SVBox.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			svDragging = false
+		end
+	end)
+
+	-- dragging the hue bar sets hue (x)
+	local hueDragging = false
+	local function updateFromHue(pos)
+		local relX = math.clamp((pos.X - HueBar.AbsolutePosition.X) / HueBar.AbsoluteSize.X, 0, 1)
+		hue = relX
+		commit()
+	end
+	HueBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			hueDragging = true
+			updateFromHue(input.Position)
+		end
+	end)
+	HueBar.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			hueDragging = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		if svDragging then
+			updateFromSV(input.Position)
+		elseif hueDragging then
+			updateFromHue(input.Position)
+		end
+	end)
+
+	-- typing a hex code in and pressing enter / clicking away applies it
+	HexBox.FocusLost:Connect(function()
+		local cleaned = HexBox.Text:gsub("#", ""):gsub("%s", "")
+		if #cleaned == 6 and cleaned:match("^%x+$") then
+			local r, g, b = tonumber(cleaned:sub(1, 2), 16), tonumber(cleaned:sub(3, 4), 16), tonumber(cleaned:sub(5, 6), 16)
+			hue, sat, val = Color3.fromRGB(r, g, b):ToHSV()
+			commit()
+		else
+			HexBox.Text = toHex(color) -- invalid input, snap back to the current color
+		end
+	end)
+
+	-- copies the hex code if the executor supports setclipboard; falls
+	-- back to focusing the box so you can select + Ctrl/Cmd-C it yourself
+	CopyBtn.MouseButton1Click:Connect(function()
+		local copied = false
+		if typeof(setclipboard) == "function" then
+			copied = pcall(setclipboard, "#" .. toHex(color))
+		end
+		if copied then
+			CopyBtn.Text = "Copied!"
+			tween(CopyBtn, { BackgroundColor3 = Theme.Accent })
+		else
+			HexBox:CaptureFocus()
+			CopyBtn.Text = "Select text"
+		end
+		task.delay(1.2, function()
+			CopyBtn.Text = "Copy"
+			tween(CopyBtn, { BackgroundColor3 = Theme.Background })
+		end)
+	end)
+
+	-- clicking the swatch expands/collapses the picker panel
 	Swatch.MouseButton1Click:Connect(function()
 		open = not open
 		Panel.Visible = open
-		tween(card, { Size = open and UDim2.new(1, 0, 0, 44 + 108 + 8) or UDim2.new(1, 0, 0, 44) })
+		tween(card, { Size = open and UDim2.new(1, 0, 0, OPEN_HEIGHT) or UDim2.new(1, 0, 0, HEADER_HEIGHT) })
 	end)
 
 	local api = {
 		Set = function(c)
-			color = c
-			Swatch.BackgroundColor3 = c
-			sliderApis[1].Set(math.floor(c.R * 255 + 0.5))
-			sliderApis[2].Set(math.floor(c.G * 255 + 0.5))
-			sliderApis[3].Set(math.floor(c.B * 255 + 0.5))
+			updatingFromCode = true
+			hue, sat, val = c:ToHSV()
+			repaint()
+			updatingFromCode = false
 		end,
 		Get = function() return color end,
 	}
