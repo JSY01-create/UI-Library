@@ -653,7 +653,7 @@ function Library:CreateWindow(config)
 	-- bar. Tap it to bring the window back. It's draggable too, so it
 	-- can be moved out of the way of whatever's happening on screen.
 	-- Starts hidden — only shown while minimized.
-	local minimizedIcon = config.MinimizedIcon or "rbxassetid://127504765058208"
+	local minimizedIcon = config.MinimizedIcon or "rbxassetid://108404355009354"
 	local BubbleButton = new("ImageButton", {
 		Size = UDim2.new(0, 50, 0, 50),
 		BackgroundColor3 = Theme.Elevated,
