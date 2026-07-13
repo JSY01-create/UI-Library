@@ -518,25 +518,20 @@ function Library:CreateWindow(config)
 	-- (which would spill off the edges of a phone screen) we clamp the
 	-- window to whatever fits, with sane min/max bounds either way.
 	--
-	-- The window's HEIGHT also fits itself to whatever the active tab's
-	-- content actually needs (see resizeToFitContent further down), so a
-	-- tab with 3 components gets a short window and a tab with 20 gets a
-	-- tall one (up to the ceiling below) instead of every tab always
-	-- rendering at the same near-full-screen height regardless of how
-	-- much is actually in it. MIN_WINDOW_HEIGHT / maxWindowHeight() are
-	-- just the floor and ceiling that fitting is clamped between.
+	-- The window height is fixed — every tab renders at the same size no
+	-- matter how many components it has. A tab with only 2 components
+	-- still gets the full-height window instead of shrinking down to fit
+	-- just those 2; a tab with more components than fit just scrolls
+	-- (every Page is already a ScrollingFrame, so this happens for free).
 	local camera = workspace.CurrentCamera
 	local viewport = (camera and camera.ViewportSize) or Vector2.new(1280, 720)
-	local MIN_WINDOW_HEIGHT = 200 -- title bar + a couple of rows; never shrink smaller than this
+	local MIN_WINDOW_HEIGHT = 200 -- floor, only relevant on very short/small screens
 	local function maxWindowHeight()
 		local vp = (camera and camera.ViewportSize) or Vector2.new(1280, 720)
-		-- 480 instead of the old fixed 560 — a window that tall looked
-		-- mostly empty for a short tab, and this is just the ceiling now,
-		-- not the default (short tabs render well under it)
 		return math.clamp(vp.Y - 100, MIN_WINDOW_HEIGHT, 480)
 	end
 	local windowWidth = math.clamp(viewport.X - 24, 300, 640)
-	local windowHeight = math.clamp(380, MIN_WINDOW_HEIGHT, maxWindowHeight()) -- starting guess; resizeToFitContent corrects it as soon as the first tab has components
+	local windowHeight = math.clamp(420, MIN_WINDOW_HEIGHT, maxWindowHeight()) -- fixed height for every tab, always
 
 	-- The main box itself.
 	local MainFrame = new("Frame", {
@@ -758,36 +753,6 @@ function Library:CreateWindow(config)
 	-- it instead of two paddings potentially stacking on top of each
 	-- other.
 
-	-- Shrinks/grows MainFrame to fit `page`'s current content, clamped
-	-- between MIN_WINDOW_HEIGHT and maxWindowHeight(). Called whenever
-	-- the visible tab's content changes size and whenever the player
-	-- switches tabs (see CreateTab), so the window height always matches
-	-- whichever tab is actually showing instead of one fixed height for
-	-- every tab regardless of how much is in it.
-	--
-	-- IMPORTANT: this reads `pageLayout.AbsoluteContentSize`, NOT
-	-- `page.CanvasSize`. A ScrollingFrame's CanvasSize (even with
-	-- AutomaticCanvasSize on) is derived FROM the UIListLayout's
-	-- AbsoluteContentSize one step later — so reading CanvasSize right
-	-- after a page becomes Visible can catch a stale/zero value from
-	-- while it was hidden (layout doesn't get recomputed for invisible
-	-- objects), and the window would tween down to MIN_WINDOW_HEIGHT
-	-- before snapping back up a moment later. Reading AbsoluteContentSize
-	-- directly off the layout object skips that extra lag entirely.
-	--
-	-- This is attached directly onto the Window instance below (instead
-	-- of being a normal `function Library:Something()` method) because
-	-- it needs closure access to THIS window's own MainFrame/
-	-- expandedHeight/minimized/windowWidth — those are private locals up
-	-- above, not fields stored on `self`.
-	local PAGE_PADDING_Y = 24 -- matches the top(10) + bottom(14) UIPadding every page uses, see CreateTab
-	local function resizeToFitContent(page, pageLayout)
-		if minimized or not page.Visible then return end
-		local desired = math.clamp(46 + PAGE_PADDING_Y + pageLayout.AbsoluteContentSize.Y, MIN_WINDOW_HEIGHT, maxWindowHeight())
-		expandedHeight = desired
-		tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, desired) }, 0.15)
-	end
-
 	-- A deliberate hairline where the sidebar meets the content area.
 	-- Without this, that seam is just two flat colors touching directly,
 	-- and at small sizes / lower rendering quality (e.g. on phones) the
@@ -811,7 +776,6 @@ function Library:CreateWindow(config)
 		MainFrame = MainFrame,
 		TabList = TabList,
 		ContentArea = ContentArea,
-		ResizeToFitContent = resizeToFitContent, -- see the function above for why this lives here instead of on Library
 		Tabs = {}, -- keeps track of every tab created, so clicking one can hide the others
 	}, Library)
 
@@ -883,37 +847,17 @@ function Library:CreateTab(name, icon)
 		ScrollBarThickness = 3,
 		ScrollBarImageColor3 = Theme.Stroke,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y, -- grows automatically as you add components
+		AutomaticCanvasSize = Enum.AutomaticSize.Y, -- grows as you add components; scrolls once it outgrows the fixed window height
 		Visible = isFirst,
 		Parent = self.ContentArea,
+	}, {
+		listLayout(Enum.FillDirection.Vertical, Theme.ItemGap),
+		-- top/left: breathing room so cards aren't flush against the
+		-- window's edge. right: clears the scrollbar so cards don't butt
+		-- up against it. bottom: without this the last card sits flush
+		-- against the very bottom edge of the window.
+		padding(0, 10, 12, 14, 14),
 	})
-
-	-- Built separately (rather than inline in Page's children list above)
-	-- so we can hang onto `PageLayout` directly — resizeToFitContent
-	-- reads PageLayout.AbsoluteContentSize instead of Page.CanvasSize,
-	-- since the layout's own size updates immediately while CanvasSize
-	-- trails a step behind it. See resizeToFitContent's comment above.
-	local PageLayout = listLayout(Enum.FillDirection.Vertical, Theme.ItemGap)
-	PageLayout.Parent = Page
-
-	-- top/left: breathing room so cards aren't flush against the
-	-- window's edge — these used to both be 0, which is what caused
-	-- content to look clipped/cut off on the left. right: clears the
-	-- scrollbar so cards don't butt up against it. bottom: without
-	-- this the last card sits flush against the very bottom edge of
-	-- the window, which reads as it being cut off too.
-	local PagePadding = padding(0, 10, 12, 14, 14)
-	PagePadding.Parent = Page
-
-	-- Every time this page's content changes size, re-fit the window's
-	-- height to match, so a short tab doesn't render at the same height
-	-- as a long one. AbsoluteContentSize is the layout engine's own,
-	-- immediately-updated number — see resizeToFitContent for why we
-	-- deliberately don't use Page:GetPropertyChangedSignal("CanvasSize")
-	-- here instead.
-	PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		self.ResizeToFitContent(Page, PageLayout)
-	end)
 
 	local tabData = { Button = TabButton, Page = Page, Name = name }
 	table.insert(self.Tabs, tabData)
@@ -933,20 +877,6 @@ function Library:CreateTab(name, icon)
 				tween(iconImg, { ImageColor3 = active and Theme.Text or Theme.SubText })
 			end
 		end
-		self.ResizeToFitContent(Page, PageLayout) -- immediate best-effort resize
-
-		-- ...then correct it a frame later. This page may have just gone
-		-- from hidden to Visible, and Roblox doesn't recompute layout for
-		-- hidden objects — so AbsoluteContentSize can still be stale at
-		-- the exact instant Visible flips true. Waiting one Heartbeat
-		-- guarantees the layout engine has actually caught up before we
-		-- trust the number, which is what was causing the window to
-		-- visibly shrink-then-snap-back (or just stay wrongly shrunk) on
-		-- every tab click.
-		task.defer(function()
-			RunService.Heartbeat:Wait()
-			self.ResizeToFitContent(Page, PageLayout)
-		end)
 	end)
 
 	-- Small hover highlight for inactive tabs.
