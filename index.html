@@ -225,10 +225,74 @@
   ::-webkit-scrollbar-thumb{ background:var(--stroke); border-radius:5px; }
   ::-webkit-scrollbar-track{ background:transparent; }
 
+  /* ---------- hero layout + window mockup ---------- */
+  .hero-flex{ display:flex; align-items:center; justify-content:space-between; gap:40px; }
+  .hero-text{ flex:1; min-width:0; }
+
+  .window-mockup{
+    flex-shrink:0; width:300px; border-radius:12px; overflow:hidden;
+    background:var(--bg); border:1px solid var(--stroke);
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.6), 0 0 0 1px #ffffff08;
+    transform:perspective(1200px) rotateY(-8deg) rotateX(2deg);
+    transition:transform .3s ease;
+  }
+  .window-mockup:hover{ transform:perspective(1200px) rotateY(-3deg) rotateX(1deg); }
+  .wm-titlebar{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--sidebar); padding:11px 14px; border-bottom:1px solid var(--stroke);
+  }
+  .wm-titles{ display:flex; align-items:baseline; gap:7px; }
+  .wm-title{ font-family:'Space Grotesk'; font-weight:700; font-size:13px; }
+  .wm-sub{ font-family:'JetBrains Mono'; font-size:10px; color:var(--subtext); }
+  .wm-winbtns{ display:flex; gap:6px; }
+  .wm-winbtn{
+    width:18px; height:18px; border-radius:5px; background:var(--elevated);
+    display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--subtext);
+  }
+  .wm-body{ display:flex; min-height:170px; }
+  .wm-sidebar{ width:92px; background:var(--sidebar); padding:10px 7px; display:flex; flex-direction:column; gap:5px; flex-shrink:0; }
+  .wm-tab{ display:flex; align-items:center; gap:6px; padding:7px 8px; border-radius:6px; font-size:10.5px; color:var(--subtext); }
+  .wm-tab.active{ background:var(--accent-dim); color:var(--text); font-weight:600; }
+  .wm-tab svg{ width:12px; height:12px; flex-shrink:0; }
+  .wm-content{ flex:1; padding:14px; }
+  .wm-btn{
+    background:var(--elevated); border:1px solid var(--stroke); border-radius:7px;
+    padding:9px; text-align:center; font-size:11.5px; color:var(--text);
+  }
+
   @media (max-width:820px){
     .shell{ grid-template-columns:1fr; }
-    .sidebar{ position:relative; height:auto; }
+    .sidebar{
+      position:fixed; top:0; left:0; height:100vh; width:280px; max-width:82vw;
+      z-index:60; transform:translateX(-100%); transition:transform .22s ease;
+      box-shadow:24px 0 48px rgba(0,0,0,.45);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .sidebar-scrim{
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:55;
+    }
+    .sidebar-scrim.show{ display:block; }
+    .mobile-topbar{
+      display:flex; align-items:center; gap:12px;
+      background:var(--sidebar); border-bottom:1px solid var(--stroke);
+      padding:13px 16px; position:sticky; top:0; z-index:50;
+    }
+    .mobile-topbar .brand{ border-bottom:none; margin-bottom:0; padding:0; }
+    .nav-toggle{
+      background:var(--panel); border:1px solid var(--stroke); border-radius:7px;
+      width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+      color:var(--text); cursor:pointer; flex-shrink:0;
+    }
     .main{ padding:32px 20px 100px; }
+    .hero h1{ font-size:27px; }
+    .hero p{ font-size:14px; }
+    .hero-flex{ flex-direction:column-reverse; gap:28px; }
+    .window-mockup{ width:100%; max-width:320px; margin:0 auto; transform:none; }
+    .window-mockup:hover{ transform:none; }
+  }
+  @media (min-width:821px){
+    .mobile-topbar{ display:none; }
+    .sidebar-scrim{ display:none; }
   }
 
   .toast-global{
@@ -243,10 +307,24 @@
 </head>
 <body>
 
+<div class="mobile-topbar">
+  <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle navigation">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <div class="brand">
+    <div class="brand-mark">UI</div>
+    <div>
+      <div class="brand-text">Aurora</div>
+      <div class="brand-sub">docs &amp; snippets</div>
+    </div>
+  </div>
+</div>
+<div class="sidebar-scrim" id="sidebarScrim"></div>
+
 <div class="shell">
 
   <!-- ===================== SIDEBAR ===================== -->
-  <nav class="sidebar">
+  <nav class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-mark">UI</div>
       <div>
@@ -267,20 +345,54 @@
   <main class="main">
 
     <section class="hero">
-      <div class="hero-eyebrow">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
-        every snippet below is copy-ready
-      </div>
-      <h1>Aurora reference</h1>
-      <p>A component-by-component reference for Aurora, a Roblox UI library. Click <b>Copy</b> on any block to grab that exact code — window setup, tabs with icons, every input component, notifications, and the full JSON config system with autoload. Paste straight into your script.</p>
-      <div class="hero-actions">
-        <a class="btn primary" href="#quickstart">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          Quick start
-        </a>
-        <a class="btn" href="#config">Config &amp; autoload</a>
-        <a class="btn" href="#tabs">Tab icons</a>
-        <a class="btn" href="#themes">Themes</a>
+      <div class="hero-flex">
+        <div class="hero-text">
+          <div class="hero-eyebrow">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+            every snippet below is copy-ready
+          </div>
+          <h1>Aurora reference</h1>
+          <p>A component-by-component reference for Aurora, a Roblox UI library. Click <b>Copy</b> on any block to grab that exact code — window setup, tabs with icons, every input component, notifications, and the full JSON config system with autoload. Paste straight into your script.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#quickstart">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              Quick start
+            </a>
+            <a class="btn" href="#config">Config &amp; autoload</a>
+            <a class="btn" href="#tabs">Tab icons</a>
+            <a class="btn" href="#themes">Themes</a>
+          </div>
+        </div>
+
+        <!-- live preview of the actual Aurora window, built from the same
+             theme colors as the library itself, not a static screenshot -->
+        <div class="window-mockup" aria-hidden="true">
+          <div class="wm-titlebar">
+            <div class="wm-titles">
+              <span class="wm-title">Aurora</span>
+              <span class="wm-sub">v1.0</span>
+            </div>
+            <div class="wm-winbtns">
+              <span class="wm-winbtn">–</span>
+              <span class="wm-winbtn">×</span>
+            </div>
+          </div>
+          <div class="wm-body">
+            <div class="wm-sidebar">
+              <div class="wm-tab active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/></svg>
+                Main
+              </div>
+              <div class="wm-tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+                Settings
+              </div>
+            </div>
+            <div class="wm-content">
+              <div class="wm-btn">Click me</div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -317,7 +429,8 @@ const DOCS = [
         code: `local Window = Library:CreateWindow({
     Title = "Aurora",
     Subtitle = "v1.0"
-})`
+})`,
+        note: "The title bar comes with a minimize (—) and close (×) button out of the box — nothing to configure. The window's height also fits itself to whichever tab is currently showing (a short tab gets a short window instead of everything rendering at one fixed height), and on a phone-sized screen the whole thing scales itself down to fit. Both title bar buttons are touch-friendly — a tap works exactly like a click."
       },
       {
         id: "full-example",
@@ -381,21 +494,26 @@ local MainTab = Window:CreateTab("Main", "home")`,
     id: "themes",
     label: "Themes",
     heading: "Themes",
-    intro: "Swap the whole color palette with one word — call <code>Library:SetTheme(name)</code> before you create the window, or pass <code>Theme</code> straight into <code>CreateWindow</code>. Names aren't case sensitive, and a few aliases work too (<code>\"White\"</code> → Light, <code>\"Pink\"</code> → Sakura).",
+    intro: "Swap the whole color palette with one word — call <code>Library:SetTheme(name)</code> before you create the window, or pass <code>Theme</code> straight into <code>CreateWindow</code>. Names aren't case sensitive, and a few aliases work too (<code>\"White\"</code> → Light, <code>\"Pink\"</code> → Sakura, <code>\"Purple\"</code> → Grape, <code>\"Green\"</code> → Forest, <code>\"Gold\"</code>/<code>\"Orange\"</code> → Amber).",
     items: [
       {
         id: "theme-swatches",
         title: "Built-in presets",
-        desc: "Six ready-made palettes. Each one sets background, sidebar, card, border, accent, and text colors together so everything stays readable.",
+        desc: "Ten ready-made palettes. Each one sets background, sidebar, card, border, accent, and text colors together so everything stays readable.",
         preview: `<div class="fw-row" style="flex-wrap:wrap;gap:14px;">
-          ${themeSwatch('Dark', '#18181b', '#7289ff')}
+          ${themeSwatch('Dark', '#16161a', '#7289ff')}
           ${themeSwatch('Light', '#f6f6f9', '#5865f2')}
-          ${themeSwatch('Sakura', '#1e151a', '#f58cb5')}
-          ${themeSwatch('Midnight', '#0d0f18', '#63b3ff')}
-          ${themeSwatch('Ocean', '#0e181b', '#40c8c5')}
-          ${themeSwatch('Crimson', '#181011', '#e64b50')}
+          ${themeSwatch('Sakura', '#1c1318', '#f58cb5')}
+          ${themeSwatch('Midnight', '#0c0e16', '#63b3ff')}
+          ${themeSwatch('Ocean', '#0d1619', '#40c8c5')}
+          ${themeSwatch('Crimson', '#160f10', '#e64b50')}
+          ${themeSwatch('Grape', '#1a1422', '#aa6eff')}
+          ${themeSwatch('Forest', '#0f1410', '#60c878')}
+          ${themeSwatch('Amber', '#16120d', '#f5af50')}
+          ${themeSwatch('Violet', '#14101a', '#966eff')}
         </div>`,
-        code: `-- pick any one of: "Dark", "Light", "Sakura", "Midnight", "Ocean", "Crimson"
+        code: `-- pick any one of: "Dark", "Light", "Sakura", "Midnight", "Ocean",
+-- "Crimson", "Grape", "Forest", "Amber", "Violet"
 Library:SetTheme("Sakura")
 
 local Window = Library:CreateWindow({
@@ -416,8 +534,8 @@ local Window = Library:CreateWindow({
       {
         id: "theme-custom",
         title: "Adding your own theme",
-        desc: "Register a new preset in <code>Library.ThemePresets</code> with the same fields as the built-in ones, then call <code>SetTheme</code> with its name like any other.",
-        code: `Library.ThemePresets.Grape = {
+        desc: "Register a new preset in <code>Library.ThemePresets</code> with the same fields as the built-in ones, then call <code>SetTheme</code> with its name like any other. (This is just an example palette — <code>\"Grape\"</code> already exists as a built-in, so this one's called <code>\"Lilac\"</code> instead.)",
+        code: `Library.ThemePresets.Lilac = {
     Background = Color3.fromRGB(26, 20, 34),
     Sidebar = Color3.fromRGB(21, 16, 28),
     Elevated = Color3.fromRGB(38, 30, 48),
@@ -429,7 +547,7 @@ local Window = Library:CreateWindow({
     SubText = Color3.fromRGB(160, 150, 170),
 }
 
-Library:SetTheme("Grape")`,
+Library:SetTheme("Lilac")`,
         note: "Call <b>SetTheme</b> before <b>CreateWindow</b>. Every component reads its color from the Theme table the moment it's built, so the palette has to be swapped in before the window (and its tabs/components) exist — same reason you'd pick paint before painting a room, not after."
       }
     ]
@@ -727,8 +845,22 @@ DOCS.forEach(group => {
   content.appendChild(cat);
 });
 
-/* highlight all code blocks */
-hljs.highlightAll();
+/* highlight all code blocks — guarded, because this used to be a single
+   point of failure for the whole page. If highlight.js fails to load for
+   any reason (ad blocker, Brave Shields, a flaky CDN request, a corporate
+   firewall — cdnjs.cloudflare.com does get blocked sometimes), calling
+   hljs.highlightAll() unguarded throws, and since every other script
+   below it — copy buttons, search, scroll-spy nav, the mobile drawer —
+   lives in this same block, all of THAT silently stops working too.
+   Worth catching so a missing syntax-highlighter degrades gracefully
+   (plain-colored code) instead of breaking the whole page. */
+try {
+  if (typeof hljs !== 'undefined') {
+    hljs.highlightAll();
+  }
+} catch (err) {
+  console.warn('Syntax highlighting unavailable:', err);
+}
 
 /* copy buttons */
 document.querySelectorAll('.copy-btn').forEach(btn => {
@@ -796,6 +928,23 @@ const observer = new IntersectionObserver((entries) => {
   });
 }, { rootMargin: '-15% 0px -70% 0px' });
 items.forEach(item => observer.observe(item));
+
+/* ---------- mobile nav drawer ---------- */
+const sidebar = document.getElementById('sidebar');
+const navToggle = document.getElementById('navToggle');
+const scrim = document.getElementById('sidebarScrim');
+
+function openDrawer(){ sidebar.classList.add('open'); scrim.classList.add('show'); }
+function closeDrawer(){ sidebar.classList.remove('open'); scrim.classList.remove('show'); }
+
+navToggle.addEventListener('click', () => {
+  sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+});
+scrim.addEventListener('click', closeDrawer);
+// tapping any nav link on mobile should navigate AND close the drawer
+sidebar.addEventListener('click', (e) => {
+  if (e.target.closest('.nav-link')) closeDrawer();
+});
 </script>
 </body>
 </html>
