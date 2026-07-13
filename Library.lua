@@ -555,6 +555,11 @@ function Library:CreateWindow(config)
 	-- they're assigned, instead of accidentally creating new globals
 	local Sidebar, ContentArea
 
+	-- same idea: the bubble button's tap-to-restore handler needs to call
+	-- setMinimized before it's actually defined further down, and
+	-- Window:Destroy() needs destroyWindow before IT exists too
+	local setMinimized, destroyWindow
+
 	-- Re-run the sizing above any time the screen changes size, e.g. a
 	-- phone being rotated between portrait and landscape.
 	if camera then
@@ -620,10 +625,10 @@ function Library:CreateWindow(config)
 		})
 	end
 
-	-- Minimize ("—") button — collapses the window down to just the
-	-- title bar, sits just left of the close button. Works the same way
-	-- for touch as it does for a mouse: TextButton's MouseButton1Click
-	-- fires for taps too, no extra input handling needed.
+	-- Minimize ("—") button — sits just left of the close button. Works
+	-- the same way for touch as it does for a mouse: TextButton's
+	-- MouseButton1Click fires for taps too, no extra input handling
+	-- needed.
 	local MinimizeBtn = new("TextButton", {
 		Size = UDim2.new(0, 28, 0, 28),
 		Position = UDim2.new(1, -72, 0.5, -14),
@@ -643,19 +648,99 @@ function Library:CreateWindow(config)
 		tween(MinimizeBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText })
 	end)
 
-	-- Shared by the minimize button below and by Window:Minimize() /
-	-- Window:Restore(), so both paths animate the exact same way and
-	-- can't drift out of sync with each other.
-	local function setMinimized(state)
+	-- Small floating circular button that takes the window's place while
+	-- minimized, instead of the window just collapsing down to its title
+	-- bar. Tap it to bring the window back. It's draggable too, so it
+	-- can be moved out of the way of whatever's happening on screen.
+	-- Starts hidden — only shown while minimized.
+	local minimizedIcon = config.MinimizedIcon or "rbxassetid://127504765058208"
+	local BubbleButton = new("ImageButton", {
+		Size = UDim2.new(0, 50, 0, 50),
+		BackgroundColor3 = Theme.Elevated,
+		Image = minimizedIcon,
+		ScaleType = Enum.ScaleType.Fit,
+		ImageColor3 = Theme.Text,
+		Visible = false,
+		AutoButtonColor = false,
+		ZIndex = 10,
+		Parent = ScreenGui,
+	}, { corner(UDim.new(1, 0)), stroke(Theme.Stroke) }) -- UDim.new(1,0) always yields a full circle on a square button
+
+	BubbleButton.MouseEnter:Connect(function()
+		tween(BubbleButton, { BackgroundColor3 = Theme.ElevatedHover })
+	end)
+	BubbleButton.MouseLeave:Connect(function()
+		tween(BubbleButton, { BackgroundColor3 = Theme.Elevated })
+	end)
+
+	-- The bubble is both draggable AND clickable, which normally
+	-- conflict (a drag ends in a MouseButton1Click same as a tap does).
+	-- This tracks how far the pointer actually moved between press and
+	-- release — under the threshold counts as a tap (restore the
+	-- window), over it counts as a drag (just leave the bubble there).
+	do
+		local BUBBLE_TAP_THRESHOLD = 6 -- pixels
+		local dragging, dragStart, startPos, moved = false, nil, nil, false
+
+		BubbleButton.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = true
+				moved = false
+				dragStart = input.Position
+				startPos = BubbleButton.Position
+			end
+		end)
+
+		UserInputService.InputChanged:Connect(function(input)
+			if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+				local delta = input.Position - dragStart
+				if not moved and delta.Magnitude > BUBBLE_TAP_THRESHOLD then
+					moved = true
+				end
+				BubbleButton.Position = UDim2.new(
+					startPos.X.Scale, startPos.X.Offset + delta.X,
+					startPos.Y.Scale, startPos.Y.Offset + delta.Y
+				)
+			end
+		end)
+
+		UserInputService.InputEnded:Connect(function(input)
+			if dragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+				dragging = false
+				if not moved then
+					setMinimized(false) -- short tap, not a drag — treat it as "restore"
+				end
+			end
+		end)
+	end
+
+	-- Shared by the minimize button, the bubble's tap-to-restore above,
+	-- and Window:Minimize() / Window:Restore(), so every path animates
+	-- the exact same way and can't drift out of sync with each other.
+	setMinimized = function(state)
 		if state == minimized then return end -- already there, nothing to do
 		minimized = state
 		if minimized then
 			Sidebar.Visible = false
 			ContentArea.Visible = false
-			MinimizeBtn.Text = "+"
-			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 46) }, 0.18)
+			-- the bubble picks up roughly where the window's title bar
+			-- was, so it feels like the window shrank into it
+			local mainPos = MainFrame.Position
+			BubbleButton.Position = UDim2.new(mainPos.X.Scale, mainPos.X.Offset, mainPos.Y.Scale, mainPos.Y.Offset)
+			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 0) }, 0.18)
+			task.wait(0.18)
+			MainFrame.Visible = false
+			BubbleButton.Visible = true
+			BubbleButton.Size = UDim2.new(0, 0, 0, 0)
+			tween(BubbleButton, { Size = UDim2.new(0, 50, 0, 50) }, 0.15)
 		else
-			MinimizeBtn.Text = "-"
+			BubbleButton.Visible = false
+			-- reopen wherever the bubble ended up (in case it got
+			-- dragged), rather than snapping back to its original spot
+			local bubblePos = BubbleButton.Position
+			MainFrame.Position = UDim2.new(bubblePos.X.Scale, bubblePos.X.Offset, bubblePos.Y.Scale, bubblePos.Y.Offset)
+			MainFrame.Size = UDim2.new(0, windowWidth, 0, 0)
+			MainFrame.Visible = true
 			tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, expandedHeight) }, 0.18)
 			task.wait(0.18)
 			-- only reveal these again once the window has actually
@@ -690,8 +775,10 @@ function Library:CreateWindow(config)
 	end)
 
 	-- Shared by the × button and by Window:Destroy().
-	local function destroyWindow()
-		-- shrink the window down to nothing, then delete it
+	destroyWindow = function()
+		-- shrink the window down to nothing, then delete it (this also
+		-- takes the bubble button with it, if it happened to be
+		-- minimized at the time — it's a descendant of ScreenGui too)
 		tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 0) }, 0.2)
 		task.wait(0.2)
 		ScreenGui:Destroy()
@@ -813,9 +900,9 @@ function Library:CreateWindow(config)
 			return self.ScreenGui.Enabled
 		end,
 
-		-- Minimize/Restore/ToggleMinimize do the same collapse-to-title-
-		-- bar animation as clicking the "-" button, just callable from
-		-- code too — e.g. auto-minimizing while the player is in combat.
+		-- Minimize/Restore/ToggleMinimize swap the window for the small
+		-- floating circular button, just callable from code too — e.g.
+		-- auto-minimizing while the player is in combat.
 		Minimize = function(self)
 			setMinimized(true)
 		end,
