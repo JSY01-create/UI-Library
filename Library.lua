@@ -642,8 +642,13 @@ function Library:CreateWindow(config)
 	MinimizeBtn.MouseLeave:Connect(function()
 		tween(MinimizeBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText })
 	end)
-	MinimizeBtn.MouseButton1Click:Connect(function()
-		minimized = not minimized
+
+	-- Shared by the minimize button below and by Window:Minimize() /
+	-- Window:Restore(), so both paths animate the exact same way and
+	-- can't drift out of sync with each other.
+	local function setMinimized(state)
+		if state == minimized then return end -- already there, nothing to do
+		minimized = state
 		if minimized then
 			Sidebar.Visible = false
 			ContentArea.Visible = false
@@ -658,6 +663,10 @@ function Library:CreateWindow(config)
 			Sidebar.Visible = true
 			ContentArea.Visible = true
 		end
+	end
+
+	MinimizeBtn.MouseButton1Click:Connect(function()
+		setMinimized(not minimized)
 	end)
 
 	-- Close ("X") button, top right of the title bar.
@@ -679,12 +688,16 @@ function Library:CreateWindow(config)
 	CloseBtn.MouseLeave:Connect(function()
 		tween(CloseBtn, { BackgroundColor3 = Theme.Elevated, TextColor3 = Theme.SubText })
 	end)
-	CloseBtn.MouseButton1Click:Connect(function()
+
+	-- Shared by the × button and by Window:Destroy().
+	local function destroyWindow()
 		-- shrink the window down to nothing, then delete it
 		tween(MainFrame, { Size = UDim2.new(0, windowWidth, 0, 0) }, 0.2)
 		task.wait(0.2)
 		ScreenGui:Destroy()
-	end)
+	end
+
+	CloseBtn.MouseButton1Click:Connect(destroyWindow)
 
 	-- Let the player drag the whole window by holding the title bar.
 	makeDraggable(TitleBar, MainFrame)
@@ -777,6 +790,52 @@ function Library:CreateWindow(config)
 		TabList = TabList,
 		ContentArea = ContentArea,
 		Tabs = {}, -- keeps track of every tab created, so clicking one can hide the others
+
+		----------------------------------------------------------------
+		-- Window-level controls
+		----------------------------------------------------------------
+
+		-- Show/Hide/Toggle just flip the whole ScreenGui on or off —
+		-- instant, no animation. Nothing is destroyed, so every toggle
+		-- state, slider value, textbox contents, etc. are exactly as
+		-- you left them when you Show() it again. Handy for binding to
+		-- a keybind (e.g. RightShift) to tuck the whole menu away.
+		Show = function(self)
+			self.ScreenGui.Enabled = true
+		end,
+		Hide = function(self)
+			self.ScreenGui.Enabled = false
+		end,
+		Toggle = function(self)
+			self.ScreenGui.Enabled = not self.ScreenGui.Enabled
+		end,
+		IsVisible = function(self)
+			return self.ScreenGui.Enabled
+		end,
+
+		-- Minimize/Restore/ToggleMinimize do the same collapse-to-title-
+		-- bar animation as clicking the "-" button, just callable from
+		-- code too — e.g. auto-minimizing while the player is in combat.
+		Minimize = function(self)
+			setMinimized(true)
+		end,
+		Restore = function(self)
+			setMinimized(false)
+		end,
+		ToggleMinimize = function(self)
+			setMinimized(not minimized)
+		end,
+		IsMinimized = function(self)
+			return minimized
+		end,
+
+		-- Destroy tears the window down with the same shrink animation
+		-- as the × button, then removes the ScreenGui entirely. Unlike
+		-- Hide(), this is permanent — call CreateWindow again if you
+		-- want a new one afterward.
+		Destroy = function(self)
+			destroyWindow()
+		end,
 	}, Library)
 
 	return Window
