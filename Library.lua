@@ -181,24 +181,24 @@ Library.Theme = Theme -- exposed in case you want to read/tweak it from outside 
 -- "SAKURA", "Sakura" all work), and a couple of friendly aliases are
 -- supported too (e.g. "White" == "Light").
 --
--- Built-in presets: "Dark" (default), "Light" (alias "White"),
--- "Sakura", "Midnight", "Ocean", "Crimson", "Grape".
+-- Built-in presets: "Dark" (default), "Light" (alias "White"), "Sakura",
+-- "Midnight", "Ocean", "Crimson", "Grape", "Forest", "Amber", "Violet".
 --
--- You can also add your own the same way "Grape" is defined below:
---     Library.ThemePresets.Forest = {
---         Background = Color3.fromRGB(16, 22, 18),
---         Sidebar = Color3.fromRGB(10, 15, 12),
---         Elevated = Color3.fromRGB(26, 36, 29),
---         ElevatedHover = Color3.fromRGB(34, 46, 38),
---         Stroke = Color3.fromRGB(45, 60, 49),
---         Accent = Color3.fromRGB(96, 200, 120),
---         AccentHover = Color3.fromRGB(120, 216, 142),
---         Text = Color3.fromRGB(232, 242, 234),
---         SubText = Color3.fromRGB(150, 172, 155),
---         Success = Color3.fromRGB(110, 210, 140),
---         Danger = Color3.fromRGB(230, 100, 95),
+-- You can also add your own the same way any of those are defined below:
+--     Library.ThemePresets.Slate = {
+--         Background = Color3.fromRGB(20, 22, 26),
+--         Sidebar = Color3.fromRGB(13, 14, 17),
+--         Elevated = Color3.fromRGB(32, 35, 41),
+--         ElevatedHover = Color3.fromRGB(41, 45, 52),
+--         Stroke = Color3.fromRGB(51, 56, 65),
+--         Accent = Color3.fromRGB(120, 190, 220),
+--         AccentHover = Color3.fromRGB(145, 205, 230),
+--         Text = Color3.fromRGB(235, 238, 240),
+--         SubText = Color3.fromRGB(155, 163, 170),
+--         Success = Color3.fromRGB(100, 205, 145),
+--         Danger = Color3.fromRGB(230, 95, 95),
 --     }
---     Library:SetTheme("Forest")
+--     Library:SetTheme("Slate")
 --
 -- NOTE: call SetTheme BEFORE CreateWindow. Every component reads its
 -- colors from the Theme table at the moment it's built, so the
@@ -300,6 +300,45 @@ Library.ThemePresets = {
 		Success = Color3.fromRGB(120, 200, 150),
 		Danger = Color3.fromRGB(235, 95, 120),
 	},
+	Forest = {
+		Background = Color3.fromRGB(16, 22, 18),
+		Sidebar = Color3.fromRGB(10, 15, 12),
+		Elevated = Color3.fromRGB(26, 36, 29),
+		ElevatedHover = Color3.fromRGB(34, 46, 38),
+		Stroke = Color3.fromRGB(45, 60, 49),
+		Accent = Color3.fromRGB(96, 200, 120),
+		AccentHover = Color3.fromRGB(120, 216, 142),
+		Text = Color3.fromRGB(232, 242, 234),
+		SubText = Color3.fromRGB(150, 172, 155),
+		Success = Color3.fromRGB(110, 210, 140),
+		Danger = Color3.fromRGB(230, 100, 95),
+	},
+	Amber = {
+		Background = Color3.fromRGB(24, 19, 12),
+		Sidebar = Color3.fromRGB(16, 12, 7),
+		Elevated = Color3.fromRGB(42, 32, 20),
+		ElevatedHover = Color3.fromRGB(53, 41, 26),
+		Stroke = Color3.fromRGB(68, 52, 33),
+		Accent = Color3.fromRGB(245, 165, 80),
+		AccentHover = Color3.fromRGB(250, 185, 110),
+		Text = Color3.fromRGB(245, 238, 228),
+		SubText = Color3.fromRGB(178, 160, 138),
+		Success = Color3.fromRGB(110, 200, 120),
+		Danger = Color3.fromRGB(235, 95, 90),
+	},
+	Violet = {
+		Background = Color3.fromRGB(20, 17, 30),
+		Sidebar = Color3.fromRGB(13, 11, 21),
+		Elevated = Color3.fromRGB(34, 28, 50),
+		ElevatedHover = Color3.fromRGB(43, 36, 62),
+		Stroke = Color3.fromRGB(54, 45, 76),
+		Accent = Color3.fromRGB(140, 120, 255),
+		AccentHover = Color3.fromRGB(165, 145, 255),
+		Text = Color3.fromRGB(238, 235, 248),
+		SubText = Color3.fromRGB(162, 155, 182),
+		Success = Color3.fromRGB(110, 210, 150),
+		Danger = Color3.fromRGB(235, 95, 110),
+	},
 }
 
 -- friendly aliases, so people don't have to remember the "canonical" name
@@ -312,6 +351,10 @@ local ThemeAliases = {
 	blue = "Ocean",
 	red = "Crimson",
 	purple = "Grape",
+	green = "Forest",
+	orange = "Amber",
+	gold = "Amber",
+	indigo = "Violet",
 }
 
 -- Swaps every color in the Theme table for the named preset. Not case
