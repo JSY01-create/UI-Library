@@ -3125,6 +3125,28 @@ function Library:GetAutoloadConfig()
 	return ok and result or nil
 end
 
+-- Removes whatever config is currently marked for autoload, without
+-- touching the config itself (the saved config still exists, it just
+-- won't load automatically anymore). Safe to call even if nothing was
+-- ever set.
+function Library:ClearAutoloadConfig()
+	if writefile then
+		local ok, err = pcall(function()
+			if isfile and isfile("AuroraConfigs/autoload.txt") then
+				delfile("AuroraConfigs/autoload.txt")
+			end
+		end)
+		return ok, err
+	else
+		local DataStoreService = game:GetService("DataStoreService")
+		local store = DataStoreService:GetDataStore("AuroraConfigs")
+		local ok, err = pcall(function()
+			store:RemoveAsync("__autoload__")
+		end)
+		return ok, err
+	end
+end
+
 ----------------------------------------------------------------------
 -- ADD CONFIG MANAGER — a ready-made "Configs" section you can drop
 -- into any tab. Gives you, out of the box:
@@ -3168,6 +3190,16 @@ function Library:AddConfigManager(tab)
 		function() end
 	)
 
+	local AutoloadLabel = Window:AddLabel(
+		tab,
+		autoloadName and ("Autoload: " .. autoloadName) or "Autoload: none set"
+	)
+	local AutoloadLabelText = AutoloadLabel:FindFirstChildOfClass("TextLabel")
+
+	local function setAutoloadLabel(name)
+		AutoloadLabelText.Text = name and ("Autoload: " .. name) or "Autoload: none set"
+	end
+
 	local NameBox = Window:AddTextbox(tab, "Config name to save as...", function() end)
 
 	local function refreshList()
@@ -3197,6 +3229,16 @@ function Library:AddConfigManager(tab)
 		if not name then return end
 		local ok = Window:SetAutoloadConfig(name)
 		Window:Notify("Config", ok and ("\"" .. name .. "\" will now load automatically") or "Failed to set autoload.", 3)
+		if ok then setAutoloadLabel(name) end
+	end)
+
+	-- Clears whichever config is currently marked for autoload. This
+	-- does NOT delete the config itself, just un-marks it — it'll no
+	-- longer be picked up by Window:LoadAutoloadConfig() next time.
+	Window:AddButton(tab, "Clear Autoload", function()
+		local ok = Window:ClearAutoloadConfig()
+		Window:Notify("Config", ok and "Autoload cleared" or "Failed to clear autoload.", 3)
+		if ok then setAutoloadLabel(nil) end
 	end)
 
 	Window:AddButton(tab, "Delete Selected Config", function()
@@ -3205,6 +3247,14 @@ function Library:AddConfigManager(tab)
 		Window:DeleteConfig(name)
 		Window:Notify("Config", "Deleted \"" .. name .. "\"", 3)
 		refreshList()
+		-- if the config you just deleted was the autoload one, the
+		-- autoload marker now points at nothing — clean it up too so
+		-- LoadAutoloadConfig doesn't fail trying to load a config that
+		-- no longer exists
+		if Window:GetAutoloadConfig() == name then
+			Window:ClearAutoloadConfig()
+			setAutoloadLabel(nil)
+		end
 	end)
 end
 
