@@ -664,7 +664,7 @@ end, "ShowFPS")`
       },
       {
         id: "slider",
-        title: "AddSlider(tab, text, min, max, default, callback, flag)",
+        title: "AddSlider(tab, text, min, max, default, callback, flag, increment)",
         desc: "Drag left/right to pick a whole number between <code>min</code> and <code>max</code>.",
         preview: `<div class="fw-card" style="flex-direction:column;align-items:stretch;gap:8px;">
           <span class="fw-label">WalkSpeed</span>
@@ -672,7 +672,7 @@ end, "ShowFPS")`
         </div>`,
         code: `Window:AddSlider(MainTab, "WalkSpeed", 16, 100, 16, function(value)
     print(value)
-end, "WalkSpeed")`
+end, "WalkSpeed", 1)`
       },
       {
         id: "textbox",
