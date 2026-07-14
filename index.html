@@ -190,6 +190,25 @@
   }
   .item-note b{ color:var(--text); }
 
+  .param-table{
+    width:100%; border-collapse:collapse; font-size:13px;
+  }
+  .param-table th{
+    text-align:left; font-family:'Space Grotesk'; font-size:11.5px;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--faint);
+    padding:0 14px 8px; font-weight:600;
+  }
+  .param-table td{
+    padding:9px 14px; border-top:1px solid var(--stroke);
+    color:var(--subtext); vertical-align:top;
+  }
+  .param-table tr:first-child td{ border-top:none; }
+  .param-table td:first-child{ white-space:nowrap; }
+  .param-table code{
+    background:var(--elevated); padding:1px 5px; border-radius:4px;
+    font-size:12px; color:#c9cdff;
+  }
+
   /* ---------- fake widget previews (CSS replicas of the actual components) ---------- */
   .fw-row{ display:flex; align-items:center; gap:10px; font-size:13px; }
   .fw-card{
@@ -433,6 +452,33 @@ const DOCS = [
         note: "The title bar comes with a minimize (—) and close (×) button out of the box — nothing to configure. The window's height also fits itself to whichever tab is currently showing (a short tab gets a short window instead of everything rendering at one fixed height), and on a phone-sized screen the whole thing scales itself down to fit. Both title bar buttons are touch-friendly — a tap works exactly like a click."
       },
       {
+        id: "window-controls",
+        title: "Controlling the window from code",
+        desc: "Everything the title bar buttons do is also available as methods on <code>Window</code>, so you can trigger the same behavior yourself — bind it to a keybind, hide the menu during combat, tear it down when your script is done, etc.",
+        preview: `<table class="param-table">
+          <tr><th>Method</th><th>What it does</th></tr>
+          <tr><td><code>Window:Show()</code></td><td>Instantly reveals the whole menu</td></tr>
+          <tr><td><code>Window:Hide()</code></td><td>Instantly tucks it away — nothing is destroyed, every toggle/slider/textbox value stays exactly as you left it</td></tr>
+          <tr><td><code>Window:Toggle()</code></td><td>Flips Show/Hide — good for a "hide UI" keybind</td></tr>
+          <tr><td><code>Window:IsVisible()</code></td><td>Returns <code>true</code>/<code>false</code></td></tr>
+          <tr><td><code>Window:Minimize()</code></td><td>Same collapse-to-title-bar animation as the "—" button</td></tr>
+          <tr><td><code>Window:Restore()</code></td><td>Expands it back out</td></tr>
+          <tr><td><code>Window:ToggleMinimize()</code></td><td>Flips Minimize/Restore</td></tr>
+          <tr><td><code>Window:IsMinimized()</code></td><td>Returns <code>true</code>/<code>false</code></td></tr>
+          <tr><td><code>Window:Destroy()</code></td><td>Same shrink-and-remove animation as the "×" button, then deletes the ScreenGui. Permanent — call <code>CreateWindow</code> again for a new one</td></tr>
+        </table>`,
+        code: `local UserInputService = game:GetService("UserInputService")
+
+-- toggle the whole menu with Right Shift
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        Window:Toggle()
+    end
+end)`,
+        note: "<b>Hide()</b> vs <b>Destroy()</b>: Hide just flips the ScreenGui's Enabled property off, so it's cheap to call repeatedly and everything picks up right where it left off on Show(). Destroy actually removes the instances — only call it when you're really done with the window for good."
+      },
+      {
         id: "full-example",
         title: "Full minimal example",
         desc: "Window → tab → one component. Copy this as a starting skeleton.",
@@ -639,12 +685,17 @@ end, "PlayerName")`
       },
       {
         id: "dropdown",
-        title: "AddDropdown(tab, text, options, default, callback, flag)",
-        desc: "Pick one option from a list, click to expand/collapse. The returned table has a <code>.Refresh(newOptions)</code> method to rebuild the list on the fly, and <code>.Get()</code> / <code>.Set(v)</code>.",
+        title: "AddDropdown(tab, text, options, default, callback, flag, multi)",
+        desc: "Pick one option from a list, click to expand/collapse. <code>.Refresh(newOptions)</code> rebuilds the list, plus <code>.Get()</code> / <code>.Set(v)</code>. Pass <code>true</code> as <code>multi</code> for multi-select: default/callback/Get/Set become an array, options get checkboxes, and picking one doesn't close the list.",
         preview: `<div class="fw-card"><span class="fw-label">Theme</span><div class="fw-dropdown">Dark ▾</div></div>`,
         code: `Window:AddDropdown(MainTab, "Theme", {"Dark", "Light"}, "Dark", function(choice)
     print(choice)
-end, "SelectedTheme")`
+end, "SelectedTheme")
+
+-- multi-select
+Window:AddDropdown(MainTab, "Weapons", {"Sword", "Bow", "Staff"}, {"Sword"}, function(picked)
+    print(table.concat(picked, ", "))
+end, "Weapons", true)`
       },
       {
         id: "colorpicker",
