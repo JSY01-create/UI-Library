@@ -1521,10 +1521,35 @@ end
 -- "pick a config" dropdown — call Refresh(Window:ListConfigs()) any
 -- time a config is saved/deleted so the list stays up to date.
 ----------------------------------------------------------------------
-function Library:AddDropdown(tab, text, options, default, callback, flag)
+-- Window:AddDropdown(Tab, "Theme", {"Dark","Light","Sakura"}, "Dark", function(choice) end, "Theme")
+--
+-- Pass `true` as the 7th argument (multi) to turn this into a
+-- MULTI-select dropdown: default/callback/Get/Set all deal with an
+-- ARRAY of picked values instead of a single one, a small checkbox
+-- appears next to each option, and picking an option doesn't close
+-- the list (so you can tick several before closing it yourself).
+--   Window:AddDropdown(Tab, "Weapons", {"Sword","Bow","Staff"}, {"Sword"}, function(picked) end, "Weapons", true)
+function Library:AddDropdown(tab, text, options, default, callback, flag, multi)
 	callback = callback or function() end
 	options = options or {}
-	local selected = default or options[1]
+	multi = multi == true
+
+	-- SINGLE mode: `selected` is one value.
+	-- MULTI mode: `selected` is an array of picked values, kept in the
+	-- same order they appear in `options`.
+	local selected
+	if multi then
+		selected = {}
+		local defaultSet = {}
+		for _, v in ipairs(default or {}) do
+			defaultSet[v] = true
+		end
+		for _, opt in ipairs(options) do
+			if defaultSet[opt] then table.insert(selected, opt) end
+		end
+	else
+		selected = default or options[1]
+	end
 	local open = false
 
 	-- closed height matches ColorPicker/Keybind (the other "click to
@@ -1546,6 +1571,24 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 		return CLOSED_HEIGHT + 8 + listHeight(n) + 10
 	end
 
+	-- Builds the text shown on the closed dropdown button.
+	local function displayText()
+		if not multi then
+			return selected and tostring(selected) or "None"
+		end
+		if #selected == 0 then return "None" end
+		if #selected <= 2 then return table.concat(selected, ", ") end
+		return #selected .. " selected"
+	end
+
+	local function isPicked(option)
+		if not multi then return option == selected end
+		for _, v in ipairs(selected) do
+			if v == option then return true end
+		end
+		return false
+	end
+
 	local card = baseCard(tab, CLOSED_HEIGHT)
 	card.ClipsDescendants = true -- hides the option list until the card is resized taller
 	card.ZIndex = 2
@@ -1565,12 +1608,12 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 		Parent = card,
 	})
 
-	-- shows the currently selected option, click it to open/close the list
+	-- shows the currently selected option(s), click it to open/close the list
 	local Selected = new("TextButton", {
 		Size = UDim2.new(0.58, -14, 0, 30),
 		Position = UDim2.new(0.42, 0, 0, 7),
 		BackgroundColor3 = Theme.Background,
-		Text = selected and tostring(selected) or "None",
+		Text = displayText(),
 		Font = Theme.Font,
 		TextSize = 13,
 		TextColor3 = Theme.SubText,
@@ -1593,12 +1636,11 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 		Parent = card,
 	}, { listLayout(Enum.FillDirection.Vertical, OPTION_GAP) })
 
-	-- Runs whenever an option is clicked, OR when you call api.Set(...)
-	-- from code — both should close the list and fire the callback the
-	-- same way, so this is shared between them.
+	-- SINGLE mode only: picking an option sets it, closes the list, and fires
+	-- the callback. Also used by api.Set(...) so both paths behave the same.
 	local function selectOption(option)
 		selected = option
-		Selected.Text = tostring(option)
+		Selected.Text = displayText()
 		open = false
 		OptionsList.Visible = false
 		tween(Arrow, { Rotation = 0 })
@@ -1606,7 +1648,29 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 		callback(option)
 	end
 
-	-- Wipes out the current option buttons and builds fresh ones from
+	-- MULTI mode only: toggles one option's membership in `selected`,
+	-- updates its checkbox and the header text, and fires the callback with
+	-- the full array — but leaves the list open so more can be picked.
+	local function toggleOption(option, box, check)
+		local removed = false
+		for i, v in ipairs(selected) do
+			if v == option then
+				table.remove(selected, i)
+				removed = true
+				break
+			end
+		end
+		if not removed then
+			table.insert(selected, option)
+		end
+		local picked = not removed
+		tween(box, { BackgroundColor3 = picked and Theme.Accent or Theme.Background })
+		tween(check, { TextTransparency = picked and 0 or 1 })
+		Selected.Text = displayText()
+		callback({ table.unpack(selected) })
+	end
+
+	-- Wipes out the current option rows and builds fresh ones from
 	-- `newOptions`. Used both the first time (below) and any time you
 	-- call api.Refresh(...) later, e.g. after saving a new config.
 	local function rebuildOptions(newOptions)
@@ -1635,15 +1699,40 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 				AutoButtonColor = false,
 				LayoutOrder = i,
 				Parent = OptionsList,
-			}, { corner(UDim.new(0, 6)), padding(0, 0, 12, 0, 12) })
+			}, { corner(UDim.new(0, 6)), padding(0, 0, 12, multi and 34 or 12, 12) })
+
+			if multi then
+				local picked = isPicked(option)
+				local Box = new("Frame", {
+					Size = UDim2.new(0, 16, 0, 16),
+					Position = UDim2.new(1, -28, 0.5, -8),
+					BackgroundColor3 = picked and Theme.Accent or Theme.Background,
+					Parent = optBtn,
+				}, { corner(UDim.new(0, 4)), stroke(Theme.Stroke) })
+				local Check = new("TextLabel", {
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					Text = "✓",
+					Font = Theme.FontBold,
+					TextSize = 11,
+					TextColor3 = Color3.fromRGB(12, 12, 16),
+					TextTransparency = picked and 0 or 1,
+					Parent = Box,
+				})
+				optBtn.MouseButton1Click:Connect(function()
+					toggleOption(option, Box, Check)
+				end)
+			else
+				optBtn.MouseButton1Click:Connect(function()
+					selectOption(option)
+				end)
+			end
+
 			optBtn.MouseEnter:Connect(function()
 				tween(optBtn, { BackgroundColor3 = Theme.ElevatedHover })
 			end)
 			optBtn.MouseLeave:Connect(function()
 				tween(optBtn, { BackgroundColor3 = Theme.Background })
-			end)
-			optBtn.MouseButton1Click:Connect(function()
-				selectOption(option)
 			end)
 		end
 	end
@@ -1660,10 +1749,23 @@ function Library:AddDropdown(tab, text, options, default, callback, flag)
 
 	local api = {
 		Set = function(v)
-			selected = v
-			Selected.Text = tostring(v)
+			if multi then
+				selected = {}
+				local set = {}
+				for _, val in ipairs(v or {}) do set[val] = true end
+				for _, opt in ipairs(options) do
+					if set[opt] then table.insert(selected, opt) end
+				end
+			else
+				selected = v
+			end
+			Selected.Text = displayText()
+			rebuildOptions(options) -- refresh checkboxes/labels to match
 		end,
-		Get = function() return selected end,
+		Get = function()
+			if multi then return { table.unpack(selected) } end
+			return selected
+		end,
 		Refresh = function(newOptions) rebuildOptions(newOptions) end,
 	}
 	if flag then Library.Flags[flag] = api end
