@@ -1932,7 +1932,48 @@ function Library:AddCheckbox(tab, text, default, callback, flag)
 end
 
 ----------------------------------------------------------------------
--- SLIDER — drag left/right to pick a value between min and max, snapped
+-- TEXTBOX — a single-line text input.
+-- Window:AddTextbox(Tab, "Enter your name...", function(text, enterPressed) end, "PlayerName")
+-- The callback fires when the box loses focus (you click away or press Enter).
+----------------------------------------------------------------------
+function Library:AddTextbox(tab, placeholder, callback, flag)
+	callback = callback or function() end
+
+	-- same height as the other single-row components so rows don't look
+	-- mismatched sitting next to each other
+	local card = baseCard(tab, 38)
+
+	local Box = new("TextBox", {
+		Size = UDim2.new(1, -28, 1, -12),
+		Position = UDim2.new(0, 14, 0, 6),
+		BackgroundColor3 = Theme.Background,
+		PlaceholderText = placeholder,
+		PlaceholderColor3 = Theme.SubText,
+		Text = "",
+		Font = Theme.Font,
+		TextSize = 14,
+		TextColor3 = Theme.Text,
+		ClearTextOnFocus = false, -- don't wipe existing text every time you click into it
+		Parent = card,
+	}, { corner(UDim.new(0, 6)), padding(0, 0, 8, 0, 8) })
+
+	Box.Focused:Connect(function()
+		tween(card, { BackgroundColor3 = Theme.ElevatedHover })
+	end)
+	Box.FocusLost:Connect(function(enterPressed)
+		tween(card, { BackgroundColor3 = Theme.Elevated })
+		callback(Box.Text, enterPressed)
+	end)
+
+	if flag then
+		Library.Flags[flag] = {
+			Set = function(v) Box.Text = tostring(v) end,
+			Get = function() return Box.Text end,
+		}
+	end
+
+	return Box
+end
 -- to steps of `increment` (e.g. 5 -> only ever lands on 0, 5, 10, 15...;
 -- 0.1 -> one decimal place). Defaults to 1 (whole numbers) if omitted.
 -- Window:AddSlider(Tab, "WalkSpeed", 16, 100, 16, function(value) end, "WalkSpeed")
